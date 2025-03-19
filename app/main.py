@@ -42,7 +42,7 @@ async def base_exception_handler(request: Request, exc: BaseAPIException):
 @app.get("/api/health", tags=["Health"])
 async def health_check():
     """Health check endpoint"""
-    return {"status": "ok"}
+    return {"status": "You're good to go!"}
 
 if __name__ == "__main__":
     import uvicorn
