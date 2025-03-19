@@ -1,18 +1,19 @@
 # FastAPI and server dependencies
 fastapi==0.103.1
 uvicorn==0.23.2
-pydantic==2.3.0
 python-multipart==0.0.6
 email-validator==2.0.0.post2
 
 # Firebase integration
 firebase-admin==6.2.0
-google-cloud-firestore==2.11.1
+google-cloud-firestore>=2.11.1
 google-auth==2.22.0
 
 # Vector database
-chromadb
-# pydantic==2.3.0
+chromadb==0.4.18
+pydantic>=2.3.0
+langchain
+astrapy
 
 # Document processing
 PyPDF2==3.0.1
@@ -24,16 +25,17 @@ markdown==3.4.4
 python-docx==0.8.11
 beautifulsoup4==4.12.2
 lxml==4.9.3
+python-pptx
 
 # NLP and embedding
 openai==1.3.0
-tiktoken==0.5.1
-numpy==1.26.4
+tiktoken>=0.6.0
+numpy>=1.26.0
 nltk==3.8.1
-spacy==3.7.4
+spacy>=3.7.2
 
 # HTTP client
-aiohttp==3.8.5
+aiohttp>=3.9.0
 requests==2.31.0
 
 # Utilities
