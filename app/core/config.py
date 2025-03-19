@@ -1,7 +1,10 @@
 import os
-from typing import List
+import json
+from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
+
+RENDER_SECRET_PATH = "/etc/secrets/firebase-credentials.json"
 
 class Settings(BaseSettings):
     # Project settings
@@ -12,7 +15,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://yourdomain.com"]
    
     # Firebase settings
-    FIREBASE_CREDENTIALS: str = ""
+    FIREBASE_CREDENTIALS: str
     FIREBASE_WEB_API_KEY: str = ""
    
     # Vector database settings
@@ -28,18 +31,18 @@ class Settings(BaseSettings):
     # Embedding settings
     EMBEDDING_MODEL: str = "text-embedding-3-large"
     EMBEDDING_DIMENSION: int = 1536
-    
+   
     # Embedding provider settings
     EMBEDDING_PROVIDER: str = "openai"
     EMBEDDING_MODEL_NAME: str = "text-embedding-3-small"
     EMBEDDING_DIMENSIONS: int = 1536
    
     # Astra DB settings
-    ASTRA_DB_API_ENDPOINT: str = ""
-    ASTRA_DB_APPLICATION_TOKEN: str = ""
+    ASTRA_DB_API_ENDPOINT: str
+    ASTRA_DB_APPLICATION_TOKEN: str
     ASTRA_DB_NAMESPACE: str = "default_keyspace"
     ASTRA_DB_COLLECTION: str = "hslu_rag_data"
-    
+   
     # OpenAI settings
     OPENAI_API_KEY: str = ""
    
@@ -54,29 +57,17 @@ class Settings(BaseSettings):
     # Cache settings
     CACHE_ENABLED: bool = True
     CACHE_TTL: int = 3600  # seconds
-    
+   
     # Environment
     ENV: str = "development"
    
-    @field_validator("FIREBASE_CREDENTIALS")
+    # Combined validator for required fields
+    @field_validator("FIREBASE_CREDENTIALS", "ASTRA_DB_API_ENDPOINT", "ASTRA_DB_APPLICATION_TOKEN")
     @classmethod
-    def validate_firebase_credentials(cls, v):
+    def validate_required_fields(cls, v, info):
+        field_name = info.field_name
         if not v and os.environ.get("ENV") != "test":
-            raise ValueError("FIREBASE_CREDENTIALS must be provided")
-        return v
-   
-    @field_validator("ASTRA_DB_API_ENDPOINT")
-    @classmethod
-    def validate_astra_db_endpoint(cls, v):
-        if not v and os.environ.get("ENV") != "test":
-            raise ValueError("ASTRA_DB_API_ENDPOINT must be provided")
-        return v
-   
-    @field_validator("ASTRA_DB_APPLICATION_TOKEN")
-    @classmethod
-    def validate_astra_db_token(cls, v):
-        if not v and os.environ.get("ENV") != "test":
-            raise ValueError("ASTRA_DB_APPLICATION_TOKEN must be provided")
+            raise ValueError(f"{field_name} must be provided")
         return v
    
     @field_validator("EMBEDDING_PROVIDER")
@@ -100,7 +91,6 @@ class Settings(BaseSettings):
             raise ValueError("EMBEDDING_DIMENSIONS must be provided")
         return v
        
-    # Update Config to the new format used in pydantic_settings
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,
@@ -108,4 +98,18 @@ class Settings(BaseSettings):
         extra='ignore'
     )
 
+# Helper method to get Firebase credentials as dict if needed
+def get_firebase_creds_dict():
+    # Check if running on Render with mounted secret file
+    if os.path.exists(RENDER_SECRET_PATH):
+        with open(RENDER_SECRET_PATH, 'r') as f:
+            return json.load(f)
+    else:
+        # Fallback to environment variable
+        creds = settings.FIREBASE_CREDENTIALS
+        try:
+            return json.loads(creds)
+        except:
+            return creds
+# Initialize settings
 settings = Settings()
