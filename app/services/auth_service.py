@@ -357,3 +357,35 @@ class AuthService:
         except Exception as e:
             print(f"Error refreshing token: {str(e)}")
             raise ValueError("Invalid refresh token")
+        
+    
+    # Add this method to the AuthService class
+
+async def logout_user(self, user_id: str) -> Dict[str, Any]:
+    """
+    Log out a user by revoking their Firebase tokens.
+    
+    Args:
+        user_id: Firebase user ID
+        
+    Returns:
+        Success message
+    """
+    try:
+        # If we're in mock mode, return mock success
+        if firebase.app is None:
+            return {"detail": "User logged out successfully"}
+            
+        # Revoke all refresh tokens for the user
+        auth = firebase.get_auth()
+        auth.revoke_refresh_tokens(user_id)
+        
+        # Update the user's lastLogout timestamp in Firestore
+        db = firebase.get_firestore()
+        user_ref = db.collection("users").document(user_id)
+        user_ref.update({"last_logout_at": int(time.time())})
+        
+        return {"detail": "User logged out successfully"}
+    except Exception as e:
+        print(f"Error during logout: {str(e)}")
+        raise ValueError("Logout failed")

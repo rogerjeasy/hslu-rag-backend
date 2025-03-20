@@ -110,3 +110,25 @@ async def verify_token(current_user=Depends(get_current_user)):
     It returns a success message if the token is valid.
     """
     return {"detail": "Token is valid", "user_id": current_user["id"]}
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(current_user=Depends(get_current_user)):
+    """
+    Log out the currently authenticated user.
+    
+    This endpoint revokes all of the user's Firebase refresh tokens,
+    effectively logging them out from all devices.
+    """
+    try:
+        result = await auth_service.logout_user(current_user["id"])
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Logout failed: {str(e)}"
+        )
