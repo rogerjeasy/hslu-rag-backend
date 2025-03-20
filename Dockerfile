@@ -13,6 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies in a layer that can be cached
@@ -39,8 +40,14 @@ RUN pip install \
 # Copy the rest of the application
 COPY . .
 
+# Make server.py executable
+RUN chmod +x server.py
+
+# Add debugging info
+RUN echo "Development image ready"
+
 # Run the application with auto-reload
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --reload
+CMD [ "sh", "-c", "echo 'Starting development server on port ${PORT:-8000}' && python server.py" ]
 
 # For production stage
 FROM base as production
@@ -48,5 +55,18 @@ FROM base as production
 # Copy the application
 COPY . .
 
-# Run the application
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 4
+# Make server.py executable
+RUN chmod +x server.py
+
+# Add debugging info
+RUN echo "Contents of /app:" && ls -la /app
+
+# Simple health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-8000}/api/health || exit 1
+
+# Add debugging info
+RUN echo "Production image ready"
+
+# Run the application 
+CMD [ "sh", "-c", "echo 'Starting production server on port ${PORT:-8000}' && exec python server.py" ]
