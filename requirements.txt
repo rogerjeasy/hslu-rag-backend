@@ -16,7 +16,7 @@ google-auth==2.22.0
 chromadb==0.4.18
 pydantic>=2.3.0
 langchain
-astrapy
+astrapy==1.5.2
 
 # Document processing
 PyPDF2==3.0.1
