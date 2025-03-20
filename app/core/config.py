@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api"
    
     # CORS settings
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://yourdomain.com"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://hslu-exam-ai-assistant.vercel.app"]
    
     # Firebase settings
     FIREBASE_CREDENTIALS: Optional[str] = None
