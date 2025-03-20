@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: hslu-rag-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    buildCommand: docker build -t hslu-rag-api --target production .
+    plan: starter
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENV
+        value: production
+      - key: API_V1_STR
+        sync: false
+      - key: ASTRA_DB_API_ENDPOINT
+        sync: false
+      - key: ASTRA_DB_APPLICATION_TOKEN
+        sync: false
+      - key: ASTRA_DB_NAMESPACE
+        value: default_keyspace
+      - key: ASTRA_DB_COLLECTION
+        value: hslu_rag_data
+      - key: EMBEDDING_PROVIDER
+        value: openai
+      - key: EMBEDDING_MODEL_NAME
+        value: text-embedding-3-small
+      - key: EMBEDDING_DIMENSIONS
+        value: 1536
+    healthCheckPath: /api/health

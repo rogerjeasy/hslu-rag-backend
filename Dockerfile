@@ -40,7 +40,7 @@ RUN pip install \
 COPY . .
 
 # Run the application with auto-reload
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --reload
 
 # For production stage
 FROM base as production
@@ -49,4 +49,4 @@ FROM base as production
 COPY . .
 
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 4

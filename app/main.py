@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import os
 from app.api.routes import auth, courses, materials, queries, study_guides, practice
 from app.core.config import settings
 from app.core.exceptions import BaseAPIException
@@ -44,6 +45,14 @@ async def health_check():
     """Health check endpoint"""
     return {"status": "You're good to go!"}
 
+# Add a root path for easier health checks
+@app.get("/", tags=["Root"])
+async def root():
+    """Root endpoint"""
+    return {"message": "Welcome to the RAG API. Go to /api/docs for documentation."}
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    # Get port from environment variable or use default
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
