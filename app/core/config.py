@@ -2,7 +2,7 @@ import os
 import json
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator
+from pydantic import field_validator, validator, root_validator
 
 RENDER_SECRET_PATH = "/etc/secrets/firebase-credentials.json"
 
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://yourdomain.com"]
    
     # Firebase settings
-    FIREBASE_CREDENTIALS: str
+    FIREBASE_CREDENTIALS: Optional[str] = None
     FIREBASE_WEB_API_KEY: str = ""
    
     # Vector database settings
@@ -38,8 +38,8 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSIONS: int = 1536
    
     # Astra DB settings
-    ASTRA_DB_API_ENDPOINT: str
-    ASTRA_DB_APPLICATION_TOKEN: str
+    ASTRA_DB_API_ENDPOINT: str = ""
+    ASTRA_DB_APPLICATION_TOKEN: str = ""
     ASTRA_DB_NAMESPACE: str = "default_keyspace"
     ASTRA_DB_COLLECTION: str = "hslu_rag_data"
    
@@ -61,14 +61,34 @@ class Settings(BaseSettings):
     # Environment
     ENV: str = "development"
    
-    # Combined validator for required fields
-    @field_validator("FIREBASE_CREDENTIALS", "ASTRA_DB_API_ENDPOINT", "ASTRA_DB_APPLICATION_TOKEN")
-    @classmethod
-    def validate_required_fields(cls, v, info):
-        field_name = info.field_name
-        if not v and os.environ.get("ENV") != "test":
-            raise ValueError(f"{field_name} must be provided")
-        return v
+    # Root validator to handle Firebase credentials from file
+    @root_validator(pre=True)
+    def validate_firebase_credentials(cls, values):
+        # Check if running on Render with mounted secret file
+        if os.path.exists(RENDER_SECRET_PATH):
+            try:
+                with open(RENDER_SECRET_PATH, 'r') as f:
+                    # Store the raw file content as a string
+                    values["FIREBASE_CREDENTIALS"] = f.read()
+            except Exception as e:
+                print(f"Error reading Firebase credentials file: {e}")
+        
+        # If we're in test mode, we don't need to validate required fields
+        if values.get("ENV") == "test":
+            return values
+            
+        # Validate that we have Firebase credentials (either from file or env var)
+        if not values.get("FIREBASE_CREDENTIALS"):
+            raise ValueError("FIREBASE_CREDENTIALS must be provided")
+            
+        # Validate Astra DB settings
+        if not values.get("ASTRA_DB_API_ENDPOINT"):
+            raise ValueError("ASTRA_DB_API_ENDPOINT must be provided")
+            
+        if not values.get("ASTRA_DB_APPLICATION_TOKEN"):
+            raise ValueError("ASTRA_DB_APPLICATION_TOKEN must be provided")
+            
+        return values
    
     @field_validator("EMBEDDING_PROVIDER")
     @classmethod
@@ -111,5 +131,6 @@ def get_firebase_creds_dict():
             return json.loads(creds)
         except:
             return creds
+
 # Initialize settings
 settings = Settings()
