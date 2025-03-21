@@ -110,7 +110,7 @@ class FirebaseManager:
                 try:
                     auth_user = auth.get_user(uid)
                     
-                    # Create default user data
+                    # Create default user data with role as a list
                     user_data = {
                         "email": auth_user.email,
                         "display_name": auth_user.display_name or "",
@@ -119,7 +119,7 @@ class FirebaseManager:
                         "last_name": None,
                         "created_at": int(time.time()),
                         "last_login_at": int(time.time()),
-                        "role": "student",
+                        "role": ["student"],  # Default role as a list
                         "student_id": None,
                         "program": None,
                         "semester": None,
@@ -138,6 +138,13 @@ class FirebaseManager:
             
             # Return user data from Firestore
             user_data = user_doc.to_dict()
+            
+            # Convert role to list if it's still a string (for backward compatibility)
+            if "role" in user_data and isinstance(user_data["role"], str):
+                user_data["role"] = [user_data["role"]]
+            elif "role" not in user_data:
+                user_data["role"] = ["student"]
+                
             return UserResponse(id=uid, **user_data)
             
         except AuthenticationException:
@@ -214,7 +221,7 @@ class FirebaseManager:
             raise FirebaseException(f"Error updating user profile: {str(e)}")
     
     def create_user(self, email: str, password: str, display_name: Optional[str] = None, 
-                   user_data: Optional[Dict[str, Any]] = None) -> UserResponse:
+               user_data: Optional[Dict[str, Any]] = None) -> UserResponse:
         """
         Create a new user in Firebase Auth and Firestore
         
@@ -238,7 +245,7 @@ class FirebaseManager:
                 display_name=display_name
             )
             
-            # Prepare user data for Firestore
+            # Prepare user data for Firestore with role as a list
             firestore_data = {
                 "email": email,
                 "display_name": display_name or "",
@@ -247,7 +254,7 @@ class FirebaseManager:
                 "last_name": None,
                 "created_at": int(time.time()),
                 "last_login_at": int(time.time()),
-                "role": "student",
+                "role": ["student"],  # Default role as a list
                 "student_id": None,
                 "program": None,
                 "semester": None,
@@ -331,7 +338,14 @@ class FirebaseManager:
                 return False
             
             user_data = user_doc.to_dict()
-            return user_data.get("role") == role
+            user_role = user_data.get("role")
+            
+            # Handle the case where role is still stored as a string
+            if isinstance(user_role, str):
+                return user_role == role
+            
+            # For a list of roles, check if the specified role is in the list
+            return user_role and role in user_role
             
         except Exception as e:
             raise FirebaseException(f"Error checking user role: {str(e)}")

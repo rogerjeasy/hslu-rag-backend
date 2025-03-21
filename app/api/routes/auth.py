@@ -210,27 +210,29 @@ async def get_user_by_id(
 @router.put("/admin/users/{user_id}/role", status_code=status.HTTP_200_OK)
 async def update_user_role(
     user_id: str,
-    role: str,
+    roles: List[str],
     admin_id: str = Depends(check_admin_role)
 ):
     """
-    Update a user's role. Admin access only.
+    Update a user's roles. Admin access only.
     """
     try:
-        # Validate role
-        if role not in ["student", "instructor", "admin"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid role. Must be one of: student, instructor, admin"
-            )
+        # Validate roles
+        valid_roles = ["student", "instructor", "admin"]
+        for role in roles:
+            if role not in valid_roles:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid role: {role}. Must be one of: {', '.join(valid_roles)}"
+                )
         
-        # Update user profile with new role
+        # Update user profile with new roles
         await auth_service.update_user_profile(
             user_id,
-            UserProfileUpdate(role=role)
+            UserProfileUpdate(role=roles)
         )
         
-        return {"detail": f"User role updated to {role}", "user_id": user_id}
+        return {"detail": f"User roles updated to {', '.join(roles)}", "user_id": user_id}
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
