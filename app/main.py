@@ -321,12 +321,19 @@ def custom_openapi():
     }
     
     # Add servers information for different environments
-    base_url = settings.API_URL if hasattr(settings, 'API_URL') else "http://localhost:8000"
+    server_url = settings.API_URL
+    if server_url.startswith("http://localhost") and settings.ENV == "production":
+        server_url = "https://hslu-rag-backend.onrender.com"
+    
     environment = settings.ENV.capitalize()
     
+    # Log the server URL being set in OpenAPI schema
+    logger.info(f"Setting OpenAPI server URL to: {server_url}")
+    
     openapi_schema["servers"] = [
-        {"url": base_url, "description": f"{environment} Environment"}
+        {"url": server_url, "description": f"{environment} Environment"}
     ]
+    
     
     # Add tags with descriptions
     openapi_schema["tags"] = [
@@ -436,19 +443,23 @@ async def detailed_health_check():
 
 # Root endpoint with API information
 @app.get("/", tags=["Root"])
-async def root():
+async def root(request: Request):
     """API root with information and documentation links"""
-    # Always use settings.API_URL for URL construction to ensure consistency
-    api_url = settings.API_URL
+    # Get the base URL dynamically from the request
+    base_url = str(request.base_url).rstrip('/')
+    
+    # For production use, prefer the configured API_URL
+    if settings.ENV == "production":
+        base_url = settings.API_URL.rstrip('/')
     
     return {
         "name": settings.PROJECT_NAME,
         "version": __version__,
         "description": "RAG Application for HSLU MSc Students in Applied Information and Data Science",
-        "documentation": f"{api_url}{API_PREFIX}/docs",
-        "redoc": f"{api_url}{API_PREFIX}/redoc",
-        "openapi": f"{api_url}{API_PREFIX}/openapi.json",
-        "health": f"{api_url}{API_PREFIX}/health",
+        "documentation": f"{base_url}{API_PREFIX}/docs",
+        "redoc": f"{base_url}{API_PREFIX}/redoc",
+        "openapi": f"{base_url}{API_PREFIX}/openapi.json",
+        "health": f"{base_url}{API_PREFIX}/health",
         "environment": settings.ENV,
     }
 

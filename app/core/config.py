@@ -122,7 +122,6 @@ class Settings(BaseSettings):
         # If we're in production, ensure API_URL doesn't use localhost
         env = values.data.get("ENV", "development")
         if env == "production" and "localhost" in v:
-            # Default to the production URL if localhost is detected in production
             return "https://hslu-rag-backend.onrender.com"
         return v
        
