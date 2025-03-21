@@ -23,37 +23,19 @@ class CourseService:
         self.db = firebase.get_firestore()
     
     async def get_courses(self, user_id: str) -> List[CourseResponse]:
-        """
-        Get a list of all courses available to the user.
-        
-        Args:
-            user_id: The ID of the current user
-            
-        Returns:
-            List of course objects
-        """
         try:
-            # Get user role and access
+            # Get user to verify user exists
             user_doc = self.db.collection("users").document(user_id).get()
             if not user_doc.exists:
                 raise NotFoundException(f"User with ID {user_id} not found")
-                
-            user_data = user_doc.to_dict()
-            user_role = user_data.get("role", "student")
             
-            # If admin or instructor, get all courses
-            if user_role in ["admin", "instructor"]:
-                courses_ref = self.db.collection("courses")
-            else:
-                # Get only enrolled courses for students
-                enrolled_courses = user_data.get("courses", [])
-                if not enrolled_courses:
-                    return []
-                courses_ref = self.db.collection("courses").where("id", "in", enrolled_courses)
+            # All users can access all courses, so directly query the courses collection
+            courses_ref = self.db.collection("courses")
+            course_docs = list(courses_ref.stream())
             
-            # Query and format courses
+            # Process course documents
             courses = []
-            for doc in courses_ref.stream():
+            for doc in course_docs:
                 course_data = doc.to_dict()
                 
                 # Get material count
@@ -78,7 +60,6 @@ class CourseService:
                 courses.append(course)
             
             return courses
-            
         except NotFoundException:
             raise
         except Exception as e:
@@ -103,11 +84,21 @@ class CourseService:
                 raise NotFoundException(f"User with ID {user_id} not found")
                 
             user_data = user_doc.to_dict()
-            user_role = user_data.get("role", "student")
+            user_role = user_data.get("role", ["student"])
             enrolled_courses = user_data.get("courses", [])
             
-            # Verify access permission
-            if user_role == "student" and course_id not in enrolled_courses:
+            # Check if role is stored as array or string
+            is_student_only = False
+            if isinstance(user_role, list):
+                # If role is a list, check if it only contains "student" 
+                # (no admin or instructor roles)
+                is_student_only = all(role == "student" for role in user_role) and len(user_role) > 0
+            else:
+                # If role is a string, check if it's "student"
+                is_student_only = user_role == "student"
+            
+            # Verify access permission - only restrict students who aren't enrolled
+            if is_student_only and course_id not in enrolled_courses:
                 raise PermissionDeniedException(f"You do not have access to this course")
             
             # Get course data
@@ -162,9 +153,19 @@ class CourseService:
                 raise NotFoundException(f"User with ID {user_id} not found")
                 
             user_data = user_doc.to_dict()
-            user_role = user_data.get("role", "student")
+            user_role = user_data.get("role", ["student"])
             
-            if user_role not in ["admin", "instructor"]:
+            # Check if user has admin or instructor role
+            has_permission = False
+            
+            if isinstance(user_role, list):
+                # If role is a list, check if it contains "admin" or "instructor"
+                has_permission = any(role in ["admin", "instructor"] for role in user_role)
+            else:
+                # If role is a string, check if it's "admin" or "instructor"
+                has_permission = user_role in ["admin", "instructor"]
+            
+            if not has_permission:
                 raise PermissionDeniedException("Only administrators and instructors can create courses")
             
             # Validate course data
@@ -224,9 +225,25 @@ class CourseService:
                 raise NotFoundException(f"User with ID {user_id} not found")
                 
             user_data = user_doc.to_dict()
-            user_role = user_data.get("role", "student")
+            user_role = user_data.get("role", ["student"])
             
-            if user_role not in ["admin", "instructor"]:
+            # Check if user has admin or instructor role
+            has_permission = False
+            is_admin = False
+            is_instructor = False
+            
+            if isinstance(user_role, list):
+                # If role is a list, check if it contains "admin" or "instructor"
+                has_permission = any(role in ["admin", "instructor"] for role in user_role)
+                is_admin = "admin" in user_role
+                is_instructor = "instructor" in user_role
+            else:
+                # If role is a string, check if it's "admin" or "instructor"
+                has_permission = user_role in ["admin", "instructor"]
+                is_admin = user_role == "admin"
+                is_instructor = user_role == "instructor"
+            
+            if not has_permission:
                 raise PermissionDeniedException("Only administrators and instructors can update courses")
             
             # Check if course exists
@@ -236,7 +253,7 @@ class CourseService:
             
             # If instructor, check if they're the course creator
             course_data_dict = course_doc.to_dict()
-            if user_role == "instructor" and course_data_dict.get("created_by") != user_id:
+            if is_instructor and not is_admin and course_data_dict.get("created_by") != user_id:
                 raise PermissionDeniedException("You can only update courses you've created")
             
             # Prepare update data
@@ -275,9 +292,19 @@ class CourseService:
                 raise NotFoundException(f"User with ID {user_id} not found")
                 
             user_data = user_doc.to_dict()
-            user_role = user_data.get("role", "student")
+            user_role = user_data.get("role", ["student"])
             
-            if user_role != "admin":
+            # Check if user has admin role
+            is_admin = False
+            
+            if isinstance(user_role, list):
+                # If role is a list, check if it contains "admin"
+                is_admin = "admin" in user_role
+            else:
+                # If role is a string, check if it's "admin"
+                is_admin = user_role == "admin"
+            
+            if not is_admin:
                 raise PermissionDeniedException("Only administrators can delete courses")
             
             # Check if course exists
