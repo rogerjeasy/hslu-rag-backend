@@ -8,7 +8,7 @@ class UserBase(BaseModel):
     photo_url: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    role: Optional[str] = "student"
+    role: Optional[List[str]] = ["student"]
 
 class UserCreate(UserBase):
     """Schema for user registration"""
@@ -48,7 +48,7 @@ class UserResponse(UserBase):
     semester: Optional[int] = None
     courses: Optional[List[CourseEnrollment]] = []
     preferences: Optional[dict] = None
-    role: Optional[str] = "student"
+    role: Optional[List[str]] = ["student"]
     
     class Config:
         orm_mode = True
@@ -65,5 +65,5 @@ class TokenData(BaseModel):
     """Schema for token payload data"""
     uid: str
     email: Optional[str] = None
-    role: Optional[str] = None
+    role: Optional[List[str]] = None
     exp: Optional[int] = None
