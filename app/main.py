@@ -467,7 +467,7 @@ async def root(request: Request):
     
     # For production use, prefer the configured API_URL
     if settings.ENV == "production":
-        base_url = settings.API_URL.rstrip('/')
+        base_url = "https://hslu-rag-backend.onrender.com"
     
     return {
         "name": settings.PROJECT_NAME,
