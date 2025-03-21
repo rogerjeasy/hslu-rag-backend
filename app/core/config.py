@@ -8,11 +8,15 @@ RENDER_SECRET_PATH = "/etc/secrets/firebase-credentials.json"
 
 class Settings(BaseSettings):
     # Project settings
-    PROJECT_NAME: str = "HSLU RAG Application"
+    PROJECT_NAME: str = "HSLU AI Assistant RAG Application"
     API_V1_STR: str = "/api"
    
     # CORS settings
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://hslu-exam-ai-assistant.vercel.app"]
+
+    # Environment
+    ENV: str = "development"
+    WORKERS: int = 1
    
     # Firebase settings
     FIREBASE_CREDENTIALS: Optional[str] = None
