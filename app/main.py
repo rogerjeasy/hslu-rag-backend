@@ -163,25 +163,36 @@ async def redoc_redirect():
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     """Add security headers to all responses"""
+    # Get the protocol from X-Forwarded-Proto header or fallback to request scheme
+    protocol = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    is_https = protocol == "https"
+    
     response = await call_next(request)
     
     # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Only add HSTS header if we're on HTTPS
+    if is_https:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Add CDN domains to CSP if needed
+    cdn_domains = "cdn.jsdelivr.net"
     
     # Relaxed CSP that allows Swagger UI and ReDoc to function properly
     response.headers["Content-Security-Policy"] = (
-    "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; "  # Added blob: here
-    "style-src 'self' 'unsafe-inline'; "
-    "img-src 'self' data:; "
-    "font-src 'self' data:; "
-    "connect-src 'self'; "
-    "worker-src 'self' blob:; "  # New directive for Web Workers
-    "child-src 'self' blob:"      # Fallback for older browsers
-)
+        f"default-src 'self'; "
+        f"script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://{cdn_domains}; "
+        f"style-src 'self' 'unsafe-inline' https://{cdn_domains}; "
+        f"img-src 'self' data:; "
+        f"font-src 'self' data: https://{cdn_domains}; "
+        f"connect-src 'self' https://*.onrender.com; "
+        f"worker-src 'self' blob:; "
+        f"child-src 'self' blob:; "
+        f"frame-src 'self'"
+    )
     
     return response
 
@@ -191,6 +202,8 @@ async def request_monitor(request: Request, call_next):
     # Generate a unique request ID for tracking
     request_id = str(uuid.uuid4())
     request_path = request.url.path
+    request_scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    request_method = request.method
     
     # Add request ID to request state for tracking
     request.state.request_id = request_id
@@ -199,7 +212,7 @@ async def request_monitor(request: Request, call_next):
     is_health_check = request_path.endswith("/health")
     
     if not is_health_check:
-        logger.info(f"Request started: {request.method} {request_path} (ID: {request_id})")
+        logger.info(f"Request started: {request_method} {request_scheme}://{request.headers.get('host', '')}{request_path} (ID: {request_id})")
     
     start_time = time.time()
     
@@ -212,7 +225,7 @@ async def request_monitor(request: Request, call_next):
         
         if not is_health_check:
             logger.info(
-                f"Request completed: {request.method} {request_path} "
+                f"Request completed: {request_method} {request_scheme}://{request.headers.get('host', '')}{request_path} "
                 f"(ID: {request_id}) - Status: {response.status_code} - Time: {process_time:.4f}s"
             )
         
@@ -220,7 +233,7 @@ async def request_monitor(request: Request, call_next):
     
     except Exception as e:
         logger.exception(
-            f"Request failed: {request.method} {request_path} "
+            f"Request failed: {request_method} {request_scheme}://{request.headers.get('host', '')}{request_path} "
             f"(ID: {request_id}) - Error: {str(e)}"
         )
         
@@ -394,7 +407,8 @@ async def health_check():
         "status": "ok",
         "version": __version__,
         "environment": settings.ENV,
-        "timestamp": int(time.time())
+        "timestamp": int(time.time()),
+        "api_url": settings.API_URL 
     }
 
 @app.get(f"{API_PREFIX}/health/detailed", tags=["Health"])
@@ -416,21 +430,25 @@ async def detailed_health_check():
         "version": __version__,
         "environment": settings.ENV,
         "timestamp": int(time.time()),
-        "components": components
+        "components": components,
+        "api_url": settings.API_URL 
     }
 
 # Root endpoint with API information
 @app.get("/", tags=["Root"])
 async def root():
     """API root with information and documentation links"""
+    # Always use settings.API_URL for URL construction to ensure consistency
+    api_url = settings.API_URL
+    
     return {
         "name": settings.PROJECT_NAME,
         "version": __version__,
         "description": "RAG Application for HSLU MSc Students in Applied Information and Data Science",
-        "documentation": f"{settings.API_URL}{API_PREFIX}/docs",
-        "redoc": f"{settings.API_URL if hasattr(settings, 'API_URL') else ''}{API_PREFIX}/redoc",
-        "openapi": f"{settings.API_URL if hasattr(settings, 'API_URL') else ''}{API_PREFIX}/openapi.json",
-        "health": f"{settings.API_URL if hasattr(settings, 'API_URL') else ''}{API_PREFIX}/health",
+        "documentation": f"{api_url}{API_PREFIX}/docs",
+        "redoc": f"{api_url}{API_PREFIX}/redoc",
+        "openapi": f"{api_url}{API_PREFIX}/openapi.json",
+        "health": f"{api_url}{API_PREFIX}/health",
         "environment": settings.ENV,
     }
 

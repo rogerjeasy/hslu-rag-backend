@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     # Project settings
     PROJECT_NAME: str = "HSLU AI Assistant RAG Application"
     API_V1_STR: str = "/api"
+    
+    # API URL for documentation and external references
+    # In production, this will be set to the Render URL
+    API_URL: str = "http://localhost:8000"
    
     # CORS settings
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://hslu-exam-ai-assistant.vercel.app"]
@@ -62,9 +66,6 @@ class Settings(BaseSettings):
     CACHE_ENABLED: bool = True
     CACHE_TTL: int = 3600  # seconds
    
-    # Environment
-    ENV: str = "development"
-   
     # Root validator to handle Firebase credentials from file
     @root_validator(pre=True)
     def validate_firebase_credentials(cls, values):
@@ -113,6 +114,16 @@ class Settings(BaseSettings):
     def validate_embedding_dimensions(cls, v):
         if not v:
             raise ValueError("EMBEDDING_DIMENSIONS must be provided")
+        return v
+    
+    @field_validator("API_URL")
+    @classmethod
+    def validate_api_url(cls, v, values):
+        # If we're in production, ensure API_URL doesn't use localhost
+        env = values.data.get("ENV", "development")
+        if env == "production" and "localhost" in v:
+            # Default to the production URL if localhost is detected in production
+            return "https://hslu-rag-backend.onrender.com"
         return v
        
     model_config = SettingsConfigDict(
