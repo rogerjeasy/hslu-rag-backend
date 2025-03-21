@@ -163,7 +163,23 @@ async def redoc_redirect():
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     """Add security headers to all responses"""
-    # Get the protocol from X-Forwarded-Proto header or fallback to request scheme
+    # Special handling for OPTIONS requests (preflight)
+    if request.method == "OPTIONS":
+        # For preflight requests, respond immediately with a 200 OK
+        response = JSONResponse(content={}, status_code=200)
+        
+        # Add required CORS headers
+        origin = request.headers.get("Origin", "")
+        if origin in settings.CORS_ORIGINS or any(origin.endswith(domain.replace("*", "")) for domain in settings.CORS_ORIGINS if "*" in domain):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, User-Agent, DNT, Cache-Control, X-Requested-With"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Max-Age"] = "600"
+        
+        return response
+    
+    # For non-OPTIONS requests, proceed as normal
     protocol = request.headers.get("X-Forwarded-Proto", request.url.scheme)
     is_https = protocol == "https"
     
@@ -188,7 +204,7 @@ async def add_security_headers(request: Request, call_next):
         f"style-src 'self' 'unsafe-inline' https://{cdn_domains}; "
         f"img-src 'self' data:; "
         f"font-src 'self' data: https://{cdn_domains}; "
-        f"connect-src 'self' https://*.onrender.com; "
+        f"connect-src 'self' https://*.onrender.com http://localhost:3000 http://127.0.0.1:3000; "
         f"worker-src 'self' blob:; "
         f"child-src 'self' blob:; "
         f"frame-src 'self'"
@@ -250,7 +266,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=[
         "Authorization", "Content-Type", "Accept", "Origin", 
-        "User-Agent", "DNT", "Cache-Control", "X-Requested-With"
+        "User-Agent", "DNT", "Cache-Control", "X-Requested-With",
+        "X-Requested-For", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Host"
     ],
     expose_headers=["X-Request-ID", "X-Process-Time"],
     max_age=600,  # Cache preflight requests for 10 minutes

@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     API_URL: str = "http://localhost:8000"
    
     # CORS settings
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://hslu-exam-ai-assistant.vercel.app"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", 
+                               "https://hslu-exam-ai-assistant.vercel.app",
+                               "http://127.0.0.1:3000"]
 
     # Environment
     ENV: str = "development"

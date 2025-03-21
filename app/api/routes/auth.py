@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from typing import Dict, Any, List
+from fastapi.responses import JSONResponse
 
 from app.core.firebase import firebase
 from app.schemas.auth import UserProfileUpdate, UserResponse
@@ -21,6 +22,31 @@ from app.core.security import (
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 auth_service = AuthService()
+
+# Add OPTIONS handlers for CORS preflight requests
+@router.options("/register", include_in_schema=False)
+async def options_register():
+    return Response(status_code=200)
+
+@router.options("/login", include_in_schema=False)
+async def options_login():
+    return Response(status_code=200)
+
+@router.options("/refresh", include_in_schema=False)
+async def options_refresh():
+    return Response(status_code=200)
+
+@router.options("/me", include_in_schema=False)
+async def options_me():
+    return Response(status_code=200)
+
+@router.options("/token/verify", include_in_schema=False)
+async def options_verify_token():
+    return Response(status_code=200)
+
+@router.options("/logout", include_in_schema=False)
+async def options_logout():
+    return Response(status_code=200)
 
 @router.post("/register", response_model=FrontendUserResponseDTO)
 async def register_user(user_data: FrontendUserRegisterDTO):
