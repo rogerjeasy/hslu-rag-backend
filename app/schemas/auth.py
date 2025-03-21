@@ -1,7 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 
-
 class UserBase(BaseModel):
     """Base model for user data"""
     email: EmailStr
@@ -9,7 +8,7 @@ class UserBase(BaseModel):
     photo_url: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-
+    role: Optional[str] = "student"
 
 class UserCreate(UserBase):
     """Schema for user registration"""
@@ -23,22 +22,21 @@ class LoginCredentials(BaseModel):
     email: EmailStr
     password: str
 
-
 class UserProfileUpdate(BaseModel):
     """Schema for user profile updates"""
     display_name: Optional[str] = None
     photo_url: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     student_id: Optional[str] = None
     program: Optional[str] = None
     semester: Optional[int] = None
     preferences: Optional[dict] = None
 
-
 class CourseEnrollment(BaseModel):
     """Schema for course enrollment data"""
     course_id: str
     enrolled_at: str
-
 
 class UserResponse(UserBase):
     """Schema for user data in responses"""
@@ -51,10 +49,9 @@ class UserResponse(UserBase):
     courses: Optional[List[CourseEnrollment]] = []
     preferences: Optional[dict] = None
     role: Optional[str] = "student"
-
+    
     class Config:
         orm_mode = True
-
 
 class Token(BaseModel):
     """Schema for authentication token"""
@@ -64,8 +61,9 @@ class Token(BaseModel):
     refresh_token: Optional[str] = None
     user: UserResponse
 
-
 class TokenData(BaseModel):
     """Schema for token payload data"""
     uid: str
     email: Optional[str] = None
+    role: Optional[str] = None
+    exp: Optional[int] = None
