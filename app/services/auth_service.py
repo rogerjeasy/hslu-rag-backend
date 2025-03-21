@@ -46,6 +46,7 @@ class AuthService:
             # Store additional user data in Firestore
             db = firebase.get_firestore()
             user_ref = db.collection("users").document(user.uid)
+            default_role = user_data.role if user_data.role else ["student"]
             
             user_data_dict = {
                 "email": user_data.email,
@@ -55,7 +56,7 @@ class AuthService:
                 "photo_url": None,
                 "created_at": int(time.time()),
                 "last_login_at": int(time.time()),
-                "role": "student",
+                "role": default_role,
                 "student_id": user_data.student_id,
                 "program": user_data.program,
                 "semester": user_data.semester,
@@ -328,10 +329,13 @@ class AuthService:
                     if not uid:
                         raise ValueError("Invalid token: UID not found")
                     
+                    # Get user profile to retrieve roles
+                    user = await self.get_user_profile(uid)
+                    
                     return TokenData(
                         uid=uid,
                         email=None,  # We don't have this information from the custom token
-                        role="student",  # Default role
+                        role=user.role,  # Will now be a list
                         exp=None  # We don't know the expiration
                     )
                 except Exception as jwt_error:
@@ -341,11 +345,14 @@ class AuthService:
                 # It's a regular ID token, verify with Firebase
                 decoded_token = firebase.verify_id_token(token)
                 
+                # Get the role from the user profile or use default
+                user = await self.get_user_profile(decoded_token["uid"])
+                
                 # Return token data
                 return TokenData(
                     uid=decoded_token["uid"],
                     email=decoded_token.get("email"),
-                    role=decoded_token.get("role", "student"),
+                    role=user.role,  # Will now be a list
                     exp=decoded_token.get("exp")
                 )
         except Exception as e:
@@ -433,8 +440,8 @@ class AuthService:
             # Get user profile
             user = await self.get_user_profile(user_id)
             
-            # Check role
-            return user.role == role
+            # Check if the role is in the user's role list
+            return user.role and role in user.role
         except Exception as e:
             print(f"Error checking user role: {str(e)}")
             raise
