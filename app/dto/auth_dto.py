@@ -87,7 +87,7 @@ class FrontendUserResponseDTO(BaseModel):
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     photoUrl: Optional[str] = None
-    role: str = "student"
+    role: List[str] = ["student"]  # Changed from string to list of strings
     createdAt: Optional[int] = None
     lastLoginAt: Optional[int] = None
     studentId: Optional[str] = None
@@ -104,6 +104,11 @@ class FrontendUserResponseDTO(BaseModel):
         if not display_name and (user.first_name or user.last_name):
             display_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
         
+        # Ensure role is a list for backward compatibility
+        user_roles = user.role if user.role else ["student"]
+        if isinstance(user_roles, str):
+            user_roles = [user_roles]
+        
         return cls(
             id=user.id,
             email=user.email,
@@ -111,7 +116,7 @@ class FrontendUserResponseDTO(BaseModel):
             firstName=user.first_name,
             lastName=user.last_name,
             photoUrl=user.photo_url,
-            role=user.role or "student",
+            role=user_roles,  # Now using the list of roles
             createdAt=user.created_at,
             lastLoginAt=user.last_login_at,
             studentId=user.student_id,

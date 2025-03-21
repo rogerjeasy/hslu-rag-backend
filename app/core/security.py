@@ -7,6 +7,7 @@ from app.core.firebase import firebase
 from app.core.exceptions import AuthenticationException
 from app.schemas.auth import UserResponse
 from app.dto.auth_dto import FrontendUserResponseDTO
+from typing import List
 
 # Security scheme for Bearer authentication
 security = HTTPBearer()
@@ -121,7 +122,7 @@ async def get_current_user(user_id: str = Depends(get_current_user_id)) -> UserR
                 "created_at": auth_user.user_metadata.creation_timestamp,
                 "last_login_at": auth_user.user_metadata.last_sign_in_timestamp,
                 "courses": [],
-                "role": "student",  # Default role
+                "role": ["student"],  # Default role as a list
                 "student_id": None,
                 "program": None,
                 "semester": None,
@@ -132,6 +133,13 @@ async def get_current_user(user_id: str = Depends(get_current_user_id)) -> UserR
            
         # Convert the document to a UserResponse object
         user_dict = user_doc.to_dict()
+        
+        # Convert role to list if it's still a string (for backward compatibility)
+        if "role" in user_dict and isinstance(user_dict["role"], str):
+            user_dict["role"] = [user_dict["role"]]
+        elif "role" not in user_dict:
+            user_dict["role"] = ["student"]
+            
         return UserResponse(id=user_id, **user_dict)
        
     except AuthenticationException as e:
@@ -176,11 +184,24 @@ async def check_admin_role(user_id: str = Depends(get_current_user_id)) -> str:
         # Get the user document from Firestore
         user_ref = firebase.get_firestore().collection("users").document(user_id)
         user_doc = user_ref.get()
-       
-        if not user_doc.exists or user_doc.to_dict().get("role") != "admin":
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        
+        user_data = user_doc.to_dict()
+        user_roles = user_data.get("role", [])
+        
+        # Convert to list if it's still a string (backward compatibility)
+        if isinstance(user_roles, str):
+            user_roles = [user_roles]
+        
+        if not user_roles or "admin" not in user_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to perform this action",
+                detail="Not authorized to perform this action. Admin role required.",
             )
            
         return user_id
@@ -210,11 +231,24 @@ async def check_instructor_role(user_id: str = Depends(get_current_user_id)) -> 
         # Get the user document from Firestore
         user_ref = firebase.get_firestore().collection("users").document(user_id)
         user_doc = user_ref.get()
-       
-        if not user_doc.exists or user_doc.to_dict().get("role") != "instructor":
+        
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        
+        user_data = user_doc.to_dict()
+        user_roles = user_data.get("role", [])
+        
+        # Convert to list if it's still a string (backward compatibility)
+        if isinstance(user_roles, str):
+            user_roles = [user_roles]
+        
+        if not user_roles or "instructor" not in user_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to perform this action",
+                detail="Not authorized to perform this action. Instructor role required.",
             )
            
         return user_id
@@ -251,12 +285,17 @@ async def check_admin_or_instructor_role(user_id: str = Depends(get_current_user
                 detail="User not found",
             )
         
-        role = user_doc.to_dict().get("role")
+        user_data = user_doc.to_dict()
+        user_roles = user_data.get("role", [])
         
-        if role not in ["admin", "instructor"]:
+        # Convert to list if it's still a string (backward compatibility)
+        if isinstance(user_roles, str):
+            user_roles = [user_roles]
+        
+        if not user_roles or not any(role in ["admin", "instructor"] for role in user_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not authorized to perform this action",
+                detail="Not authorized to perform this action. Admin or Instructor role required.",
             )
            
         return user_id
