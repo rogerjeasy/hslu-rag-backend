@@ -6,10 +6,10 @@ from pydantic import BaseModel, Field
 class CourseBase(BaseModel):
     """Base schema for course"""
     code: str
-    name: str  # Changed from title to match frontend
+    name: str  
     description: str
     semester: str
-    credits: int  # Added to match frontend
+    credits: int 
     instructor: str
     status: str = Field(..., description="Course status: 'active', 'inactive', or 'archived'")
 
