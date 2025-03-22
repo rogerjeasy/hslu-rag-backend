@@ -432,7 +432,7 @@ async def health_check():
         "version": __version__,
         "environment": settings.ENV,
         "timestamp": int(time.time()),
-        "api_url": settings.API_URL 
+        # "api_url": settings.API_URL 
     }
 
 @app.get(f"{API_PREFIX}/health/detailed", tags=["Health"])
