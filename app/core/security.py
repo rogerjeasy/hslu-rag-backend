@@ -1,3 +1,4 @@
+# app/core/security.py
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt

@@ -52,6 +52,16 @@ class Settings(BaseSettings):
     ASTRA_DB_APPLICATION_TOKEN: str = ""
     ASTRA_DB_NAMESPACE: str = "default_keyspace"
     ASTRA_DB_COLLECTION: str = "hslu_rag_data"
+
+    # Cloudinary settings
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
+    
+    # Pinecone settings
+    PINECONE_API_KEY: str = ""
+    PINECONE_ENVIRONMENT: str = ""
+    PINECONE_INDEX_NAME: str = "hslu-rag-index"
    
     # OpenAI settings
     OPENAI_API_KEY: str = ""

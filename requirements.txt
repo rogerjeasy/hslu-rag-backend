@@ -15,8 +15,10 @@ google-auth==2.22.0
 # Vector database
 chromadb==0.4.18
 pydantic>=2.3.0
-langchain
+langchain==0.3.21
+langchain-community==0.3.20
 astrapy==1.5.2
+pinecone==6.0.2
 
 # Document processing
 PyPDF2==3.0.1
@@ -28,14 +30,17 @@ markdown==3.4.4
 python-docx==0.8.11
 beautifulsoup4==4.12.2
 lxml==4.9.3
-python-pptx
+# python-pptx
 
 # NLP and embedding
-openai==1.3.0
+openai==1.68.2
 tiktoken>=0.6.0
 numpy>=1.26.0
 nltk==3.8.1
 spacy>=3.7.2
+
+# Cloudinary
+cloudinary==1.43.0
 
 # HTTP client
 aiohttp>=3.9.0
@@ -57,3 +62,4 @@ black==23.9.1
 isort==5.12.0
 flake8==6.1.0
 mypy==1.5.1
+
