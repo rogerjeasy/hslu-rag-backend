@@ -18,7 +18,7 @@ async def get_study_guides(
     """
     try:
         guides = await study_guide_service.get_study_guides(
-            user_id=current_user["id"],
+            user_id=current_user.id,
             course_id=course_id,
             topic_id=topic_id
         )
@@ -40,7 +40,7 @@ async def get_study_guide(
     try:
         guide = await study_guide_service.get_study_guide(
             guide_id=guide_id,
-            user_id=current_user["id"]
+            user_id=current_user.id
         )
         if not guide:
             raise HTTPException(
@@ -66,7 +66,7 @@ async def create_study_guide(
     """
     try:
         guide = await study_guide_service.create_study_guide(
-            user_id=current_user["id"],
+            user_id=current_user.id,
             guide_request=guide_request
         )
         return guide
@@ -87,7 +87,7 @@ async def delete_study_guide(
     try:
         deleted = await study_guide_service.delete_study_guide(
             guide_id=guide_id,
-            user_id=current_user["id"]
+            user_id=current_user.id
         )
         if not deleted:
             raise HTTPException(
