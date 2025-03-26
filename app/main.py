@@ -21,12 +21,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
 
 # Import application modules
-from app.api.routes import auth, courses, materials, queries, study_guides, practice
+from app.api.routes import auth, courses, materials, queries, study_guides, practice, conversations, statistics
 from app.core.config import settings
 from app.core.exceptions import BaseAPIException, AuthenticationException, PermissionDeniedException, NotFoundException, ValidationException, RateLimitException
-# Not needed anymore as we're using uuid directly
-# from app.core import security
-# Application version and metadata
+
 __version__ = "1.0.0"
 API_PREFIX = "/api"
 
@@ -54,10 +52,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting HSLU RAG API v{__version__} in {settings.ENV} environment")
     
     # Initialize connections to databases, vector stores, etc.
-    # This could include database connections, loading models, etc.
     start_time = time.time()
     
-    # TODO: Add initialization code here
     # await initialize_database()
     # await initialize_vector_store()
     # await initialize_models()
@@ -70,7 +66,6 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown initiated")
     
     # Close connections, release resources
-    # TODO: Add cleanup code here
     # await close_database_connections()
     # await release_model_resources()
     
@@ -168,7 +163,6 @@ async def add_security_headers(request: Request, call_next):
         # For preflight requests, respond immediately with a 200 OK
         response = JSONResponse(content={}, status_code=200)
         
-        # Add required CORS headers
         origin = request.headers.get("Origin", "")
         if origin in settings.CORS_ORIGINS or any(origin.endswith(domain.replace("*", "")) for domain in settings.CORS_ORIGINS if "*" in domain):
             response.headers["Access-Control-Allow-Origin"] = origin
@@ -221,10 +215,8 @@ async def request_monitor(request: Request, call_next):
     request_scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
     request_method = request.method
     
-    # Add request ID to request state for tracking
     request.state.request_id = request_id
     
-    # Skip detailed logging for health check endpoints to reduce noise
     is_health_check = request_path.endswith("/health")
     
     if not is_health_check:
@@ -280,10 +272,12 @@ app.include_router(materials, prefix=f"{API_PREFIX}/v1", tags=["Course Materials
 app.include_router(queries, prefix=f"{API_PREFIX}/v1", tags=["Queries"])
 app.include_router(study_guides, prefix=f"{API_PREFIX}/v1", tags=["Study Guides"])
 app.include_router(practice, prefix=f"{API_PREFIX}/v1", tags=["Practice Questions"])
+app.include_router(conversations, prefix=f"{API_PREFIX}/v1", tags=["Conversations"]) 
+app.include_router(statistics, prefix=f"{API_PREFIX}/v1", tags=["Statistics"])
 
 # Serve static files (for API documentation, etc.)
 try:
-    static_dir = "static"  # Use your existing static folder
+    static_dir = "static"
     if not os.path.exists(static_dir):
         logger.warning(f"Static directory '{static_dir}' doesn't exist. Creating it...")
         os.makedirs(static_dir)
@@ -307,10 +301,8 @@ def custom_openapi():
         routes=app.routes,
     )
     
-    # Add OpenAPI version - this is required for Swagger UI to work properly
     openapi_schema["openapi"] = "3.0.2"
     
-    # Add security schemes
     if "components" not in openapi_schema:
         openapi_schema["components"] = {}
         
@@ -323,7 +315,6 @@ def custom_openapi():
         }
     }
     
-    # Add contact information
     openapi_schema["info"]["contact"] = {
         "name": "HSLU Data Science Support",
         "url": "https://www.hslu.ch/datascience-support",
@@ -353,15 +344,18 @@ def custom_openapi():
     
     
     # Add tags with descriptions
-    openapi_schema["tags"] = [
-        {"name": "Authentication", "description": "User authentication and authorization operations"},
-        {"name": "Courses", "description": "Course information and structure"},
-        {"name": "Course Materials", "description": "Lecture materials, assignments, and resources"},
-        {"name": "Queries", "description": "Question answering with the RAG system"},
-        {"name": "Study Guides", "description": "Generate and manage study guides"},
-        {"name": "Practice Questions", "description": "Generate and answer practice questions"},
-        {"name": "Health", "description": "API health check endpoints"}
-    ]
+    # openapi_schema["tags"] = [
+    #     {"name": "Root", "description": "Root API information and documentation links"},
+    #     {"name": "Authentication", "description": "User authentication and authorization operations"},
+    #     {"name": "Courses", "description": "Course information and structure"},
+    #     {"name": "Course Materials", "description": "Lecture materials, assignments, and resources"},
+    #     {"name": "Queries", "description": "Question answering with the RAG system"},
+    #     {"name": "Study Guides", "description": "Generate and manage study guides"},
+    #     {"name": "Practice Questions", "description": "Generate and answer practice questions"},
+    #     {"name": "Health", "description": "API health check endpoints"},
+    #     {"name": "Conversations", "description": "Chat conversations and messages"},
+    #     {"name": "Statistics", "description": "Course and user statistics"},
+    # ]
     
     app.openapi_schema = openapi_schema
     return app.openapi_schema
@@ -438,7 +432,6 @@ async def health_check():
 @app.get(f"{API_PREFIX}/health/detailed", tags=["Health"])
 async def detailed_health_check():
     """Detailed health check with component status information"""
-    # TODO: Implement actual health checks for each component
     components = {
         "database": "ok",
         "vector_store": "ok",
@@ -465,7 +458,7 @@ async def root(request: Request):
     # Get the base URL dynamically from the request
     base_url = str(request.base_url).rstrip('/')
     
-    # For production use, prefer the configured API_URL
+    # For production API_URL
     if settings.ENV == "production":
         base_url = "https://hslu-rag-backend.onrender.com"
     
@@ -480,15 +473,12 @@ async def root(request: Request):
         "environment": settings.ENV,
     }
 
-# Run the application using uvicorn if executed directly
 if __name__ == "__main__":
     import uvicorn
     
-    # Get port from environment variable or use default
     port = int(os.environ.get("PORT", 8000))
     log_level = os.environ.get("LOG_LEVEL", "info").lower()
     
-    # Get number of workers (default to 1 if not specified)
     workers = getattr(settings, "WORKERS", 1)
     
     logger.info(f"Starting uvicorn server on port {port} with {workers} workers")
