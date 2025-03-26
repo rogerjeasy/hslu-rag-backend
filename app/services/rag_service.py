@@ -22,32 +22,33 @@ class RAGService:
     4. Saving query history
     """
     
-    def __init__(self):
+    def __init__(self, retrieval_service=None, generation_service=None, firestore_service=None):
         """Initialize the RAG service with required components"""
-        self.db = firebase.get_firestore()
-        self.retriever = Retriever()
-        self.llm_connector = LLMConnector()
+        self.db = firestore_service.db if firestore_service else firebase.get_firestore()
+        self.retriever = retrieval_service if retrieval_service else Retriever()
+        self.llm_connector = generation_service if generation_service else LLMConnector()
     
     async def process_query(
         self,
-        query: str,
-        user_id: str,
-        course_id: Optional[str] = None,
-        conversation_id: Optional[str] = None
+        query_request,  # This should be a QueryRequest object
+        user_id: str
     ) -> Dict[str, Any]:
         """
         Process a user query through the RAG pipeline.
         
         Args:
-            query: The user's question or request
+            query_request: The QueryRequest object containing the query and metadata
             user_id: The ID of the current user
-            course_id: Optional course ID to restrict context retrieval
-            conversation_id: Optional conversation ID for continuity
-            
+                
         Returns:
             Dictionary containing the response and metadata
         """
         try:
+            # Extract data from the query_request object
+            query = query_request.text
+            course_id = query_request.course_id
+            conversation_id = query_request.conversation_id
+            
             # Create a new conversation ID if not provided
             if not conversation_id:
                 conversation_id = str(uuid.uuid4())
@@ -62,10 +63,10 @@ class RAGService:
                 )
             
             # Retrieve relevant document chunks from vector store
-            retrieved_chunks = await self.retriever.retrieve(
+            retrieved_chunks = await self.retriever.retrieve_context(
                 query=query,
                 course_id=course_id,
-                limit=5  # Top 5 most relevant chunks
+                max_chunks=5  # Top 5 most relevant chunks
             )
             
             if not retrieved_chunks:
@@ -74,8 +75,8 @@ class RAGService:
             # Generate response using LLM with retrieved context
             response = await self.llm_connector.generate_response(
                 query=query,
-                retrieved_chunks=retrieved_chunks,
-                conversation_history=conversation_history
+                context_chunks=retrieved_chunks,
+                additional_params={"conversation_history": conversation_history}
             )
             
             # Prepare the response object
@@ -83,7 +84,7 @@ class RAGService:
                 "query_id": str(uuid.uuid4()),
                 "query": query,
                 "response": response["content"],
-                "sources": response["sources"],
+                "citations": response["citations"],
                 "conversation_id": conversation_id,
                 "timestamp": datetime.utcnow().isoformat(),
                 "course_id": course_id,
@@ -94,7 +95,7 @@ class RAGService:
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
             raise RAGException(f"Failed to process query: {str(e)}")
-    
+        
     async def save_query_history(
         self,
         user_id: str,
@@ -120,7 +121,7 @@ class RAGService:
                 "user_id": user_id,
                 "query": query,
                 "response": response["response"],
-                "sources": response["sources"],
+                "citations": response.get("citations", []),
                 "conversation_id": conversation_id or response["conversation_id"],
                 "timestamp": response["timestamp"],
                 "course_id": course_id,

@@ -1,6 +1,14 @@
+from enum import Enum
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
+
+class QueryType(str, Enum):
+    """Enum for different types of queries"""
+    QUESTION_ANSWERING = "question_answering"
+    STUDY_GUIDE = "study_guide"
+    PRACTICE_QUESTIONS = "practice_questions"
+    KNOWLEDGE_GAP = "knowledge_gap"
 
 
 class QueryCreate(BaseModel):
@@ -114,3 +122,28 @@ class ConversationSummary(BaseModel):
     last_timestamp: str
     query_count: int
     course_id: Optional[str] = None
+
+class QueryRequest(BaseModel):
+    """Schema for query request from frontend"""
+    text: str
+    course_id: str
+    module_id: Optional[str] = None
+    topic_id: Optional[str] = None
+    conversation_id: Optional[str] = None
+    query_type: QueryType = QueryType.QUESTION_ANSWERING
+    additional_params: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "text": "Explain the differences between supervised and unsupervised learning",
+                "course_id": "machine-learning-101",
+                "module_id": "module-1",
+                "topic_id": "topic-2",
+                "conversation_id": "9f7b5e3a-8c1d-4b5a-b5e3-9f7b5e3a8c1d",
+                "query_type": "question_answering",
+                "additional_params": {
+                    "include_citations": True
+                }
+            }
+        }

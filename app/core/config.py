@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # Pinecone settings
     PINECONE_API_KEY: str = ""
     PINECONE_ENVIRONMENT: str = ""
-    PINECONE_INDEX_NAME: str = "hslu-rag-index"
+    PINECONE_INDEX_NAME: str = "hslu-rag-index-fpqjvu0"
    
     # OpenAI settings
     OPENAI_API_KEY: str = ""

@@ -64,6 +64,7 @@ async def create_study_guide(
     """
     Create a new AI-generated study guide for a course or topic.
     """
+    print("study_guide_request", guide_request)
     try:
         guide = await study_guide_service.create_study_guide(
             user_id=current_user.id,

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Body, status
 from typing import Dict, Any, List, Optional
 from app.schemas.conversation import (
@@ -16,6 +17,8 @@ from app.core.security import get_current_user
 from app.schemas.auth import UserResponse
 from datetime import datetime
 from app.core.firebase import firebase
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
@@ -64,7 +67,7 @@ async def create_conversation(
             )
             
             # Process the query
-            await rag_service.process_query(
+            ai_response = await rag_service.process_query(
                 query_request=query_request,
                 user_id=current_user.id
             )
@@ -97,7 +100,7 @@ async def get_conversations(
             except Exception as e:
                 print(f"Error converting conversation: {str(e)}")
                 # Skip this conversation or handle appropriately
-                
+
         return result
     except Exception as e:
         raise HTTPException(
@@ -236,6 +239,21 @@ async def add_message(
             query_request=query_request,
             user_id=current_user.id
         )
+
+        # Add the response to conversation
+        ai_message = await firestore_service.add_message_to_conversation(
+            conversation_id=conversation_id,
+            user_id=current_user.id,
+            message_data={
+                "content": response.get("response", ""),
+                "role": "assistant",
+                "timestamp": datetime.utcnow().isoformat(),
+                "metadata": {
+                    "citations": response.get("citations", []),
+                    "query_id": response.get("query_id")
+                }
+            }
+        )
         
         # Get updated conversation
         updated_conversation = await firestore_service.get_conversation(
@@ -253,11 +271,10 @@ async def add_message(
                 BackendConversationDTO.message_to_frontend(message)
                 for message in latest_exchange
             ],
-            "citations": [
-                citation.dict() for citation in response.citations
-            ] if hasattr(response, "citations") else []
+            "citations": response.get("citations", [])
         }
     except Exception as e:
+        logger.error(f"Error adding message: {str(e)}", exc_info=True)  # Add exc_info=True to get the stack trace
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error adding message: {str(e)}"

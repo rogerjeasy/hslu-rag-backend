@@ -189,6 +189,7 @@ class FirestoreService:
                 })
             
             # Log if no conversations found
+            
             if not conversations:
                 logger.info(f"No conversations found for user {user_id}" + 
                         (f" in course {course_id}" if course_id else ""))

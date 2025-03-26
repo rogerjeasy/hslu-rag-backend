@@ -123,7 +123,7 @@ class GenerationService:
             citations = self._extract_citations(parsed_response, context_chunks)
             
             return {
-                "response_text": parsed_response.get("answer", ""),
+                "content": parsed_response.get("answer", ""),
                 "citations": citations,
                 "raw_llm_response": response_text,
                 "meta": parsed_response.get("meta", {})

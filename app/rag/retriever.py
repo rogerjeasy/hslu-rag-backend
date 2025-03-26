@@ -40,10 +40,10 @@ class Retriever:
             logger.error(f"Error initializing AstraDB: {str(e)}")
             raise RAGException(f"Failed to initialize AstraDB: {str(e)}")
     
-    async def retrieve(
+    async def retrieve_context(
         self,
         query: str,
-        limit: int = 5,
+        max_chunks: int = 5,
         course_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -70,7 +70,7 @@ class Retriever:
             results = self.astra_manager.find_similar(
                 collection=self.collection,
                 query_vector=query_embedding,
-                limit=limit,
+                limit=max_chunks,
                 include_value=True,
                 filter_condition=filter_condition
             )

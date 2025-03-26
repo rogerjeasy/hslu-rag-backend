@@ -32,7 +32,7 @@ This backend implements a RAG system using FastAPI, Firebase (Authentication and
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/hslu-rag-backend.git
+git clone https://github.com/rogerjeasy/hslu-rag-backend.git
 cd hslu-rag-backend
 ```
 

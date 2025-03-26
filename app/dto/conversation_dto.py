@@ -43,46 +43,83 @@ class BackendConversationDTO:
     """DTO for converting backend conversation schemas to frontend format"""
     
     @staticmethod
-    def conversation_to_frontend(conversation: Conversation) -> Dict[str, Any]:
-        """Convert backend Conversation to frontend format"""
+    def conversation_to_frontend(conversation: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert dictionary conversation to frontend format"""
+        # Format datetime objects if they exist
+        created_at = conversation.get("created_at")
+        if hasattr(created_at, "isoformat"):
+            created_at = created_at.isoformat()
+            
+        updated_at = conversation.get("updated_at")
+        if hasattr(updated_at, "isoformat"):
+            updated_at = updated_at.isoformat()
+        
+        # Handle messages conversion
+        messages = []
+        for message in conversation.get("messages", []):
+            timestamp = message.get("timestamp")
+            if hasattr(timestamp, "isoformat"):
+                timestamp = timestamp.isoformat()
+                
+            messages.append({
+                "id": message.get("id"),
+                "content": message.get("content"),
+                "role": message.get("role"),
+                "timestamp": timestamp,
+                "metadata": message.get("metadata")
+            })
+        
         return {
-            "id": conversation.id,
-            "title": conversation.title,
-            "courseId": conversation.course_id,
-            "moduleId": conversation.module_id,
-            "topicId": conversation.topic_id,
-            "createdAt": conversation.created_at.isoformat(),
-            "updatedAt": conversation.updated_at.isoformat(),
-            "messages": [
-                BackendConversationDTO.message_to_frontend(message)
-                for message in conversation.messages
-            ],
-            "active": conversation.active
+            "id": conversation.get("id"),
+            "title": conversation.get("title"),
+            "courseId": conversation.get("course_id"),
+            "moduleId": conversation.get("module_id"),
+            "topicId": conversation.get("topic_id"),
+            "createdAt": created_at,
+            "updatedAt": updated_at,
+            "messages": messages,
+            "active": conversation.get("active", True)
         }
     
     @staticmethod
-    def summary_to_frontend(summary: ConversationSummary) -> Dict[str, Any]:
-        """Convert backend ConversationSummary to frontend format"""
+    def summary_to_frontend(summary: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert dictionary conversation summary to frontend format"""
         return {
-            "id": summary.id,
-            "title": summary.title,
-            "courseId": summary.course_id,
-            "moduleId": summary.module_id,
-            "topicId": summary.topic_id,
-            "createdAt": summary.created_at.isoformat(),
-            "updatedAt": summary.updated_at.isoformat(),
-            "messageCount": summary.message_count,
-            "lastMessagePreview": summary.last_message_preview,
-            "active": summary.active
+            "id": summary.get("id"),
+            "title": summary.get("title"),
+            "courseId": summary.get("course_id"),
+            "moduleId": summary.get("module_id"),
+            "topicId": summary.get("topic_id"),
+            "createdAt": summary.get("created_at").isoformat() if hasattr(summary.get("created_at"), "isoformat") else summary.get("created_at"),
+            "updatedAt": summary.get("updated_at").isoformat() if hasattr(summary.get("updated_at"), "isoformat") else summary.get("updated_at"),
+            "messageCount": summary.get("message_count"),
+            "lastMessagePreview": summary.get("last_message", {}).get("content", "")[:100] if summary.get("last_message") else None,
+            "active": summary.get("active", True)
         }
     
     @staticmethod
-    def message_to_frontend(message: Message) -> Dict[str, Any]:
-        """Convert backend Message to frontend format"""
-        return {
-            "id": message.id,
-            "content": message.content,
-            "role": message.role,
-            "timestamp": message.timestamp.isoformat(),
-            "metadata": message.metadata
-        }
+    def message_to_frontend(message: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert backend Message (dict or object) to frontend format"""
+        # Handle dictionary input
+        if isinstance(message, dict):
+            # Format timestamp if needed
+            timestamp = message.get("timestamp")
+            if hasattr(timestamp, "isoformat"):
+                timestamp = timestamp.isoformat()
+                
+            return {
+                "id": message.get("id"),
+                "content": message.get("content"),
+                "role": message.get("role"),
+                "timestamp": timestamp,
+                "metadata": message.get("metadata", {})
+            }
+        # Handle Message object input
+        else:
+            return {
+                "id": message.id,
+                "content": message.content,
+                "role": message.role,
+                "timestamp": message.timestamp.isoformat() if hasattr(message.timestamp, "isoformat") else message.timestamp,
+                "metadata": message.metadata
+            }

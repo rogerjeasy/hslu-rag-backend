@@ -36,33 +36,7 @@ class StudyGuideService:
         Returns:
             List of study guide objects
         """
-        try:
-            # For mock mode, return sample data
-            if self.db is None:
-                return [
-                    {
-                        "id": "guide-1",
-                        "title": "Complete Machine Learning Study Guide",
-                        "course_id": "machine-learning",
-                        "topic_ids": ["neural-networks", "deep-learning"],
-                        "guide_type": "summary",
-                        "sections": [
-                            {
-                                "title": "Introduction to Neural Networks",
-                                "content": "Neural networks are computational models inspired by the human brain...",
-                                "order": 1
-                            },
-                            {
-                                "title": "Deep Learning Foundations",
-                                "content": "Deep learning is a subset of machine learning...",
-                                "order": 2
-                            }
-                        ],
-                        "created_at": datetime.utcnow().isoformat(),
-                        "created_by": user_id
-                    }
-                ]
-            
+        try:            
             # Build query
             query = self.db.collection("study_guides").where("created_by", "==", user_id)
             
@@ -159,35 +133,6 @@ class StudyGuideService:
             Generated study guide
         """
         try:
-            # For mock mode, return sample data
-            if self.db is None:
-                guide_id = f"guide-{uuid.uuid4().hex[:8]}"
-                return {
-                    "id": guide_id,
-                    "title": guide_request.get("title", "Study Guide"),
-                    "course_id": guide_request.get("course_id"),
-                    "topic_ids": guide_request.get("topic_ids"),
-                    "guide_type": guide_request.get("guide_type", "summary"),
-                    "sections": [
-                        {
-                            "title": "Introduction",
-                            "content": "This is an AI-generated study guide based on your course materials...",
-                            "order": 1
-                        },
-                        {
-                            "title": "Key Concepts",
-                            "content": "Here are the most important concepts to understand...",
-                            "order": 2
-                        },
-                        {
-                            "title": "Summary",
-                            "content": "In conclusion, these topics form the foundation of the subject...",
-                            "order": 3
-                        }
-                    ],
-                    "created_at": datetime.utcnow().isoformat(),
-                    "created_by": user_id
-                }
             
             # Generate title if not provided
             title = guide_request.get("title")
