@@ -6,8 +6,6 @@ from datetime import datetime
 from app.core.firebase import firebase
 from app.core.config import settings
 from app.core.exceptions import RAGException, NotFoundException
-from app.rag.retriever import Retriever
-from app.rag.llm_connector import LLMConnector
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +23,8 @@ class RAGService:
     def __init__(self, retrieval_service=None, generation_service=None, firestore_service=None):
         """Initialize the RAG service with required components"""
         self.db = firestore_service.db if firestore_service else firebase.get_firestore()
-        self.retriever = retrieval_service if retrieval_service else Retriever()
-        self.llm_connector = generation_service if generation_service else LLMConnector()
+        self.retriever = retrieval_service
+        self.llm_connector = generation_service
     
     async def process_query(
         self,
@@ -70,7 +68,7 @@ class RAGService:
             )
             
             if not retrieved_chunks:
-                logger.warning(f"No relevant chunks found for query: {query}")
+                logger.warning(f"============================No relevant chunks found for query: {query}")
             
             # Generate response using LLM with retrieved context
             response = await self.llm_connector.generate_response(

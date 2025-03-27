@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIR: str = "./chroma_db"
    
     # LLM settings
-    LLM_PROVIDER: str = "claude"  # Options: claude, gpt
+    LLM_PROVIDER: str = "gpt"  # Options: claude, gpt
     LLM_API_KEY: str = ""
    
     # Embedding settings
@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     # Pinecone settings
     PINECONE_API_KEY: str = ""
     PINECONE_ENVIRONMENT: str = ""
-    PINECONE_INDEX_NAME: str = "hslu-rag-index-fpqjvu0"
+    PINECONE_INDEX_NAME: str = "hslu-rag-index-test"
    
     # OpenAI settings
     OPENAI_API_KEY: str = ""

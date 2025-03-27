@@ -24,23 +24,32 @@ class DocumentLoaderService:
             Extracted text content
         """
         # Choose the appropriate loader based on file type
-        if file_type == "pdf":
-            return await self._extract_from_pdf(file_path)
-        elif file_type in ["docx", "doc"]:
-            return await self._extract_from_docx(file_path)
-        elif file_type in ["pptx", "ppt"]:
-            return await self._extract_from_ppt(file_path)
-        elif file_type in ["xlsx", "xls"]:
-            return await self._extract_from_excel(file_path)
-        elif file_type == "csv":
-            return await self._extract_from_csv(file_path)
-        elif file_type in ["txt", "py", "js", "html", "css", "md"]:
-            return await self._extract_from_text(file_path)
-        elif file_type == "ipynb":
-            return await self._extract_from_notebook(file_path)
-        else:
-            # Default to text extraction for unknown types
-            return await self._extract_from_text(file_path)
+        text_content = ""
+        
+        try:
+            if file_type == "pdf":
+                text_content = await self._extract_from_pdf(file_path)
+            elif file_type in ["docx", "doc"]:
+                text_content = await self._extract_from_docx(file_path)
+            elif file_type in ["pptx", "ppt"]:
+                text_content = await self._extract_from_ppt(file_path)
+            elif file_type in ["xlsx", "xls"]:
+                text_content = await self._extract_from_excel(file_path)
+            elif file_type == "csv":
+                text_content = await self._extract_from_csv(file_path)
+            elif file_type in ["txt", "py", "js", "html", "css", "md"]:
+                text_content = await self._extract_from_text(file_path)
+            elif file_type == "ipynb":
+                text_content = await self._extract_from_notebook(file_path)
+            else:
+                # Default to text extraction for unknown types
+                text_content = await self._extract_from_text(file_path)
+                
+            # Clean and validate the extracted text
+            return self._clean_extracted_text(text_content)
+        except Exception as e:
+            logger.error(f"Error extracting text from {file_path}: {str(e)}")
+            raise ValueError(f"Error loading {file_path}: {str(e)}")
     
     async def _extract_from_pdf(self, file_path: str) -> str:
         """Extract text from PDF files"""
@@ -74,7 +83,7 @@ class DocumentLoaderService:
                 page_info = f"\n--- Page {i+1} ---\n" if hasattr(doc, 'metadata') and 'page' in doc.metadata else ""
                 text_content += page_info + doc.page_content + "\n\n"
                 
-            return text_content
+            return self._ensure_text_content(text_content)
             
         except Exception as e:
             logger.error(f"Error extracting text from PDF {file_path}: {str(e)}")
@@ -274,3 +283,72 @@ class DocumentLoaderService:
         except Exception as e:
             logger.error(f"Error extracting text from notebook {file_path}: {str(e)}")
             raise ValueError(f"Error loading {file_path}: {str(e)}")
+        
+
+    def _clean_extracted_text(self, text: str) -> str:
+        """
+        Clean and validate extracted text to ensure proper encoding.
+        
+        Args:
+            text: Extracted text content
+            
+        Returns:
+            Cleaned text content
+        """
+        if not text or not isinstance(text, str):
+            return ""
+            
+        try:
+            # Ensure proper UTF-8 encoding
+            text = text.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+            
+            # Remove problematic characters but keep newlines, tabs, and printable chars
+            import re
+            text = re.sub(r'[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]', '', text)
+            
+            return text
+        except Exception as e:
+            logger.error(f"Error cleaning extracted text: {str(e)}")
+            return ""
+        
+    # Add this method to DocumentLoaderService
+
+    def _ensure_text_content(self, content):
+        """
+        Ensure content is valid text, not binary data.
+        
+        Args:
+            content: The content to process
+            
+        Returns:
+            Clean, properly encoded text
+        """
+        if content is None:
+            return ""
+            
+        # If content is bytes, decode it
+        if isinstance(content, bytes):
+            try:
+                content = content.decode('utf-8', errors='replace')
+            except Exception as e:
+                logger.error(f"Error decoding binary content: {str(e)}")
+                return ""
+        
+        # If it's not a string at this point, convert it
+        if not isinstance(content, str):
+            content = str(content)
+            
+        # Clean and normalize text
+        try:
+            # Force encoding/decoding to clean the text
+            content = content.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+            
+            # Remove any non-printable characters except newlines and tabs
+            import re
+            content = re.sub(r'[^\x20-\x7E\x0A\x0D\x09\xA0-\xFF]', '', content)
+            
+            return content
+        except Exception as e:
+            logger.error(f"Error processing text content: {str(e)}")
+            return ""
+        
