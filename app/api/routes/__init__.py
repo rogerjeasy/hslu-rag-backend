@@ -7,6 +7,7 @@ from app.api.routes.practice import router as practice_router
 from app.api.routes.conversations import router as conversations_router
 from app.api.routes.statistics import router as statistics_router
 from app.api.routes.maintenance import router as maintenance_router
+from app.api.routes.rag import router as rag_router
 
 # Export the routers
 auth = auth_router
@@ -18,3 +19,4 @@ practice = practice_router
 conversations = conversations_router
 statistics = statistics_router
 maintenance = maintenance_router
+rag = rag_router

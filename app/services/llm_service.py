@@ -139,8 +139,11 @@ class LLMService:
     ) -> Dict[str, Any]:
         """Generate response using OpenAI GPT API"""
         try:
-            # Call OpenAI API
-            response = await openai.chat.completions.create(
+            # Use the async client
+            async_client = openai.AsyncClient(api_key=settings.OPENAI_API_KEY)
+            
+            # Call OpenAI API using async method
+            response = await async_client.chat.completions.create(
                 model="gpt-4-turbo",  # Or your configured model
                 messages=[
                     {"role": "system", "content": system_prompt},

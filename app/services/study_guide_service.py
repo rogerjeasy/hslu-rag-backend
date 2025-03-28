@@ -5,18 +5,18 @@ from datetime import datetime
 
 from app.core.firebase import firebase
 from app.core.exceptions import NotFoundException
-from app.services.rag_service import RAGService
+from app.rag_new.rag_service import RAGService
 
 logger = logging.getLogger(__name__)
 
 class StudyGuideService:
     """Service for generating and managing study guides"""
     
-    def __init__(self, retrieval_service=None, generation_service=None, firestore_service=None):
+    def __init__(self, firestore_service=None):
         """Initialize the study guide service"""
         self.db = firestore_service.db if firestore_service else firebase.get_firestore()
         # Use RAGService instead of direct LLM and Retriever instantiation
-        self.rag_service = RAGService(retrieval_service=retrieval_service, generation_service=generation_service)
+        self.rag_service = RAGService()
     
     async def get_study_guides(
         self,

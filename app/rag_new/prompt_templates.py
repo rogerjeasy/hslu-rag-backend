@@ -1,4 +1,4 @@
-# app/core/prompt_templates.py
+# app/rag_new/prompt_templates.py
 """
 Prompt templates for HSLU RAG application.
 
@@ -15,12 +15,15 @@ from typing import List, Dict, Any, Optional
 from enum import Enum
 
 
+
 class PromptType(str, Enum):
     """Enum for different types of prompts."""
     QUESTION_ANSWERING = "question_answering"
     STUDY_GUIDE = "study_guide"
     PRACTICE_QUESTIONS = "practice_questions" 
     KNOWLEDGE_GAP = "knowledge_gap"
+    CONCEPT_EXPLANATION = "concept_explanation"
+    CODE_EXPLANATION = "code_explanation"
 
 
 class DetailLevel(str, Enum):
@@ -60,9 +63,10 @@ class QuestionType(str, Enum):
     TRUE_FALSE = "true_false"
     FILL_IN_BLANK = "fill_in_blank"
     MATCHING = "matching"
+    CODE_IMPLEMENTATION = "code_implementation"
 
 
-def get_system_prompt(prompt_type: PromptType, additional_params: Optional[Dict[str, Any]] = None) -> str:
+def get_system_prompt(prompt_type: str, additional_params: Optional[Dict[str, Any]] = None) -> str:
     """
     Get the appropriate system prompt based on prompt type and additional parameters.
     
@@ -73,6 +77,13 @@ def get_system_prompt(prompt_type: PromptType, additional_params: Optional[Dict[
     Returns:
         Formatted system prompt
     """
+    # Convert string to enum if needed
+    if isinstance(prompt_type, str):
+        try:
+            prompt_type = PromptType(prompt_type)
+        except ValueError:
+            prompt_type = PromptType.QUESTION_ANSWERING  # Default
+    
     if prompt_type == PromptType.QUESTION_ANSWERING:
         return _get_question_answering_system_prompt(additional_params)
     elif prompt_type == PromptType.STUDY_GUIDE:
@@ -81,12 +92,16 @@ def get_system_prompt(prompt_type: PromptType, additional_params: Optional[Dict[
         return _get_practice_questions_system_prompt(additional_params)
     elif prompt_type == PromptType.KNOWLEDGE_GAP:
         return _get_knowledge_gap_system_prompt(additional_params)
+    elif prompt_type == PromptType.CONCEPT_EXPLANATION:
+        return _get_concept_explanation_system_prompt(additional_params)
+    elif prompt_type == PromptType.CODE_EXPLANATION:
+        return _get_code_explanation_system_prompt(additional_params)
     else:
         return _get_default_system_prompt()
 
 
 def get_user_prompt(
-    prompt_type: PromptType,
+    prompt_type: str,
     query: str,
     context_chunks: List[Dict[str, Any]],
     additional_params: Optional[Dict[str, Any]] = None
@@ -103,6 +118,13 @@ def get_user_prompt(
     Returns:
         Formatted user prompt with context
     """
+    # Convert string to enum if needed
+    if isinstance(prompt_type, str):
+        try:
+            prompt_type = PromptType(prompt_type)
+        except ValueError:
+            prompt_type = PromptType.QUESTION_ANSWERING  # Default
+    
     # Format context for inclusion in prompt
     formatted_context = _format_context(context_chunks)
     
@@ -114,6 +136,10 @@ def get_user_prompt(
         return _get_practice_questions_user_prompt(query, formatted_context, additional_params)
     elif prompt_type == PromptType.KNOWLEDGE_GAP:
         return _get_knowledge_gap_user_prompt(query, formatted_context, additional_params)
+    elif prompt_type == PromptType.CONCEPT_EXPLANATION:
+        return _get_concept_explanation_user_prompt(query, formatted_context, additional_params)
+    elif prompt_type == PromptType.CODE_EXPLANATION:
+        return _get_code_explanation_user_prompt(query, formatted_context, additional_params)
     else:
         return _get_default_user_prompt(query, formatted_context)
 
@@ -131,12 +157,22 @@ def _format_context(context_chunks: List[Dict[str, Any]]) -> str:
     formatted_chunks = []
     
     for i, chunk in enumerate(context_chunks):
-        chunk_text = f"[{i+1}] From '{chunk.get('title', 'Unknown')}'"
+        # Format title/source information
+        title = chunk.get('title', f'Source {i+1}')
         
-        if chunk.get('source_page'):
+        chunk_text = f"[{i+1}] From '{title}'"
+        
+        # Add page information if available
+        if 'source_page' in chunk and chunk['source_page']:
             chunk_text += f", Page {chunk['source_page']}"
         
-        chunk_text += f":\n{chunk.get('chunk_content', '')}\n"
+        # Add material type if available
+        if 'file_type' in chunk and chunk['file_type']:
+            chunk_text += f" ({chunk['file_type'].upper()})"
+        
+        # Add the actual content
+        content = chunk.get('full_content', chunk.get('chunk_content', ''))
+        chunk_text += f":\n{content}\n"
         formatted_chunks.append(chunk_text)
     
     return "\n".join(formatted_chunks)
@@ -151,7 +187,7 @@ Answer questions based ONLY on the provided context. If you don't know the answe
 
 Format your response as a JSON object with these fields:
 {
-    "answer": "Your detailed answer here",
+    "answer": "Your detailed answer here with properly formatted Markdown",
     "citations": [1, 2, 3] (list of context chunk numbers you used, referenced as [1], [2], etc.)
 }
 """
@@ -168,11 +204,13 @@ When answering, follow these guidelines:
 3. Relate concepts to practical applications when possible
 4. Structure answers with clear headings and bullet points when appropriate
 5. Include relevant formulas or notations when necessary
+6. When citing sources, use the format [1], [2], etc. inline within your answer
+7. If code is involved, include properly formatted code examples with comments
 
 Format your response as a JSON object with these fields:
 {
-    "answer": "Your detailed answer here with properly formatted Markdown",
-    "citations": [1, 2, 3] (list of context chunk numbers you used, referenced as [1], [2], etc.)
+    "answer": "Your detailed answer here with properly formatted Markdown. Citations should be included inline like [1] and [2].",
+    "citations": [1, 2, 3] (list of context chunk numbers you used)
 }
 """
 
@@ -219,11 +257,12 @@ For this study guide, create a comprehensive learning resource with:
 2. Important theories and their applications
 3. Examples that illustrate the concepts
 4. Relationships between different concepts
+5. When citing sources, use the format [1], [2], etc. inline within your content
 
 Format your response as a JSON object with these fields:
 {{
-    "answer": "Your well-structured study guide with Markdown formatting",
-    "citations": [1, 2, 3] (list of context chunk numbers you used, referenced as [1], [2], etc.),
+    "answer": "Your well-structured study guide with Markdown formatting. Citations should be included inline like [1] and [2].",
+    "citations": [1, 2, 3] (list of context chunk numbers you used),
     "meta": {{
         "detail_level": "{detail_level}",
         "format": "{format_type}"
@@ -288,11 +327,17 @@ For matching questions:
 1. Create pairs of related terms/concepts
 2. Ensure clear connections between matched items
 
-For each question, include citations to the relevant context chunks.
+For code implementation questions:
+1. Create programming challenges related to data science
+2. Provide a clear problem statement
+3. Include expected inputs and outputs
+4. Provide a sample solution with comments
+
+For each question, include citations to the relevant context chunks using [1], [2], etc.
 
 Format your response as a JSON object with these fields:
 {{
-    "answer": "Practice questions with explanations and answers",
+    "answer": "Introduction to the practice questions",
     "questions": [
         {{
             "id": "q1",
@@ -345,6 +390,8 @@ For each identified gap, provide:
 3. Specific learning recommendations from the course materials
 4. Study strategies for addressing the gap
 
+Also identify any strengths shown in the student's understanding of the subject.
+
 Format your response as a JSON object with these fields:
 {
     "answer": "Your analysis with recommendations",
@@ -355,7 +402,7 @@ Format your response as a JSON object with these fields:
             "description": "Description of the knowledge gap",
             "severity": "low|medium|high",
             "recommended_resources": [
-                {"description": "Specific recommendation"}
+                {"description": "Specific recommendation", "citations": [1, 3]}
             ],
             "citations": [1, 3]
         }
@@ -372,6 +419,72 @@ Format your response as a JSON object with these fields:
 """
 
 
+def _get_concept_explanation_system_prompt(additional_params: Optional[Dict[str, Any]] = None) -> str:
+    """System prompt for detailed concept explanation."""
+    # Get detail level
+    detail_level = DetailLevel.MEDIUM.value
+    if additional_params and "detail_level" in additional_params:
+        detail_level = additional_params["detail_level"]
+    
+    # Adjust instructions based on detail level
+    detail_instructions = {
+        DetailLevel.BASIC.value: "Provide a simple explanation focusing on the core idea. Use analogies and everyday examples.",
+        DetailLevel.MEDIUM.value: "Provide a balanced explanation with both theory and practical applications.",
+        DetailLevel.COMPREHENSIVE.value: "Provide an in-depth explanation covering theoretical foundations, mathematical details if applicable, and multiple practical applications."
+    }.get(detail_level, "Provide a balanced explanation with both theory and practical applications.")
+    
+    return f"""You are an AI teaching assistant for HSLU university students in the Applied Information and Data Science MSc program.
+Explain the data science concept based ONLY on the provided context. If the concept isn't covered in the context, say so rather than making up information.
+
+Detail level: {detail_level}
+{detail_instructions}
+
+In your explanation, include:
+1. Clear definition of the concept
+2. Its importance in data science
+3. How it relates to other concepts
+4. Practical examples of its application
+5. Any limitations or considerations
+6. Code examples if relevant
+7. Citations to the relevant context chunks using [1], [2], etc.
+
+Format your response as a JSON object with these fields:
+{{
+    "answer": "Your detailed explanation with Markdown formatting. Citations should be included inline like [1] and [2].",
+    "citations": [1, 2, 3] (list of context chunk numbers you used),
+    "meta": {{
+        "detail_level": "{detail_level}"
+    }}
+}}
+"""
+
+
+def _get_code_explanation_system_prompt(additional_params: Optional[Dict[str, Any]] = None) -> str:
+    """System prompt for code explanation."""
+    return """You are an AI teaching assistant for HSLU university students in the Applied Information and Data Science MSc program.
+Explain the provided code based ONLY on the provided context. If you can't fully explain the code based on the context, acknowledge the limitations.
+
+In your explanation, include:
+1. Overview of what the code does
+2. Line-by-line or block-by-block explanation of important sections
+3. Explanation of key functions, classes, or algorithms used
+4. Identification of any potential issues or improvements
+5. Citations to the relevant context chunks using [1], [2], etc.
+
+Format your response as a JSON object with these fields:
+{
+    "answer": "Your detailed code explanation with Markdown formatting. Citations should be included inline like [1] and [2].",
+    "citations": [1, 2, 3] (list of context chunk numbers you used),
+    "code_structure": [
+        {
+            "section": "Section name (e.g., 'Initialization', 'Data Processing')",
+            "description": "What this section does",
+            "line_numbers": "approximate line numbers if available"
+        }
+    ]
+}
+"""
+
 # ===== USER PROMPTS =====
 
 def _get_default_user_prompt(query: str, formatted_context: str) -> str:
@@ -381,6 +494,8 @@ def _get_default_user_prompt(query: str, formatted_context: str) -> str:
 Relevant context:
 
 {formatted_context}
+
+Remember to answer ONLY based on the provided context. If you don't know the answer based on this context, acknowledge that there's insufficient information rather than making up an answer. Format your response as a JSON object as instructed.
 """
 
 
@@ -473,4 +588,41 @@ Use the following information as your source material:
 Based on my question and the context provided, identify concepts I might not fully understand, potential misconceptions, and recommend specific sections from the course materials to address these gaps. Also note any strengths shown in my understanding. Format your response as a JSON object as instructed.
 
 Consider this as part of my recent learning journey, where I've had approximately {past_interactions_count} previous interactions on related topics.
+"""
+
+
+def _get_concept_explanation_user_prompt(
+    query: str, 
+    formatted_context: str, 
+    additional_params: Optional[Dict[str, Any]] = None
+) -> str:
+    """User prompt for concept explanation."""
+    # Get detail level
+    detail_level = DetailLevel.MEDIUM.value
+    if additional_params and "detail_level" in additional_params:
+        detail_level = additional_params["detail_level"]
+    
+    return f"""Explain the following data science concept at a {detail_level} detail level: {query}
+
+Use the following information as your source material:
+
+{formatted_context}
+
+Provide a comprehensive explanation of the concept, including its definition, importance, applications, and examples. Remember to use only the provided context and format your response as a JSON object as instructed.
+"""
+
+
+def _get_code_explanation_user_prompt(
+    query: str, 
+    formatted_context: str, 
+    additional_params: Optional[Dict[str, Any]] = None
+) -> str:
+    """User prompt for code explanation."""
+    return f"""Explain the following code or code-related query: {query}
+
+Use the following information as your source material:
+
+{formatted_context}
+
+Break down the code structure, explain key components, functions, and algorithms. Point out any best practices, potential issues, or optimizations. Remember to use only the provided context and format your response as a JSON object as instructed.
 """

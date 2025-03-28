@@ -2,7 +2,7 @@ import os
 import json
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator, validator, root_validator
+from pydantic import Field, field_validator, validator, root_validator
 
 RENDER_SECRET_PATH = "/etc/secrets/firebase-credentials.json"
 
@@ -65,6 +65,19 @@ class Settings(BaseSettings):
    
     # OpenAI settings
     OPENAI_API_KEY: str = ""
+
+    # File processing settings
+    MAX_FILE_SIZE_MB: int = Field(50, description="Maximum file size in MB")
+    ALLOWED_FILE_TYPES: List[str] = Field(
+        ["pdf", "docx", "pptx", "txt", "md", "py", "ipynb", "csv", "xlsx"],
+        description="Allowed file types for upload"
+    )
+
+    # RAG retrieval settings
+    RAG_DEFAULT_TOP_K: int = Field(5, description="Default number of chunks to retrieve")
+    RAG_MIN_RELEVANCE_SCORE: float = Field(0.5, description="Minimum relevance score for chunks")
+    RAG_ENABLE_RERANKING: bool = Field(True, description="Whether to enable semantic reranking")
+    RAG_ENABLE_QUERY_EXPANSION: bool = Field(True, description="Whether to enable query expansion")
    
     # Content processing settings
     CHUNK_SIZE: int = 500

@@ -1,4 +1,4 @@
-# app/rag/document_processor.py
+# app/rag_new/document_processor.py
 import os
 import logging
 import tempfile
@@ -23,7 +23,7 @@ from io import BytesIO
 
 from app.core.config import settings
 from app.services.cloudinary_service import CloudinaryService
-from app.rag_new.chuncker import TextChunker
+from app.rag_new.chuncker import EnhancedTextChunker
 from app.rag_new.embdeddings import EmbeddingService
 
 logger = logging.getLogger(__name__)
@@ -36,14 +36,14 @@ class DocumentProcessor:
     def __init__(
         self,
         cloudinary_service: CloudinaryService,
-        chunker: TextChunker,
+        chunker: EnhancedTextChunker,
         embedding_service: EmbeddingService
     ):
         self.cloudinary_service = cloudinary_service
         self.chunker = chunker
         self.embedding_service = embedding_service
         
-    async def process_file(self, file_url: str, file_type: str, material_id: str) -> Tuple[List[Dict[str, Any]], List[str]]:
+    async def process_file(self, file_url: str, file_type: str, material_id: str, type: str) -> Tuple[List[Dict[str, Any]], List[str]]:
         """
         Process a file from its URL and extract text content
         
@@ -51,6 +51,7 @@ class DocumentProcessor:
             file_url: URL of the file to process
             file_type: Type of the file (pdf, jpg, etc.)
             material_id: ID of the material
+            type: Type of the material (lecture, assignment, etc.)
             
         Returns:
             Tuple of (chunks, vector_ids)
@@ -73,7 +74,8 @@ class DocumentProcessor:
             metadata = {
                 "material_id": material_id,
                 "source_url": file_url,
-                "file_type": file_type
+                "file_type": file_type,
+                "type": type
             }
             
             # Create vector embeddings

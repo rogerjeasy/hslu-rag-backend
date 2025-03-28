@@ -1,4 +1,4 @@
-# app/rag/embeddings.py
+# app/rag_new/embeddings.py
 import asyncio
 import logging
 import time

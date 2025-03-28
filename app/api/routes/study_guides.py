@@ -19,7 +19,7 @@ router = APIRouter(prefix="/study-guides", tags=["study guides"])
 retrieval_service = RetrievalService()
 generation_service = GenerationService()
 firestore_service = FirestoreService(firebase.get_firestore())
-study_guide_service = StudyGuideService(retrieval_service=retrieval_service, generation_service=generation_service, firestore_service=firestore_service)
+study_guide_service = StudyGuideService(firestore_service=firestore_service)
 
 logger = logging.getLogger(__name__)
 

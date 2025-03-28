@@ -1,11 +1,12 @@
 # app/services/material_service.py
 import logging
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from firebase_admin import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from app.core.firebase import firebase
+from app.core.config import settings
 from app.schemas.material_upload import MaterialUploadResponse, MaterialProcessingStatus
 from app.schemas.material import MaterialResponse, MaterialUpdate
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class MaterialService:
     """
-    Service for managing course materials in the database
+    Enhanced service for managing course materials in the database
     """
     
     def __init__(self):
@@ -33,8 +34,17 @@ class MaterialService:
             Material ID
         """
         try:
+            logger.info(f"Creating material record in database: {material.id}")
+            
             # Convert to dictionary
             material_dict = material.dict() if hasattr(material, 'dict') else material
+            
+            # Add timestamps
+            if 'created_at' not in material_dict:
+                material_dict['created_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            
+            if 'updated_at' not in material_dict:
+                material_dict['updated_at'] = material_dict['created_at']
             
             # Add to Firestore
             self.materials_collection.document(material.id).set(material_dict)
@@ -55,7 +65,7 @@ class MaterialService:
             return material.id
             
         except Exception as e:
-            logger.error(f"Error creating material: {str(e)}")
+            logger.error(f"Error creating material: {str(e)}", exc_info=True)
             raise
     
     async def get_material(self, material_id: str) -> Optional[MaterialResponse]:
@@ -73,13 +83,14 @@ class MaterialService:
             doc = self.materials_collection.document(material_id).get()
             
             if not doc.exists:
+                logger.warning(f"Material not found: {material_id}")
                 return None
             
             # Convert to MaterialResponse
             return MaterialResponse(**doc.to_dict())
             
         except Exception as e:
-            logger.error(f"Error getting material: {str(e)}")
+            logger.error(f"Error getting material: {str(e)}", exc_info=True)
             raise
     
     async def update_material(self, material_id: str, material: MaterialUploadResponse) -> bool:
@@ -94,8 +105,13 @@ class MaterialService:
             Success status
         """
         try:
+            logger.info(f"Updating material: {material_id}")
+            
             # Convert to dictionary
             material_dict = material.dict() if hasattr(material, 'dict') else material
+            
+            # Add update timestamp
+            material_dict['updated_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
             
             # Update in Firestore
             self.materials_collection.document(material_id).update(material_dict)
@@ -103,7 +119,7 @@ class MaterialService:
             return True
             
         except Exception as e:
-            logger.error(f"Error updating material: {str(e)}")
+            logger.error(f"Error updating material: {str(e)}", exc_info=True)
             raise
     
     async def update_material_status(self, material_id: str, status: str, error_message: Optional[str] = None) -> bool:
@@ -119,16 +135,25 @@ class MaterialService:
             Success status
         """
         try:
-            # Update in Firestore
-            self.materials_collection.document(material_id).update({
+            logger.info(f"Updating material status: {material_id} -> {status}")
+            
+            # Create update dictionary
+            update_dict = {
                 "status": status,
-                "error_message": error_message
-            })
+                "updated_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            }
+            
+            # Add error message if provided
+            if error_message:
+                update_dict["error_message"] = error_message
+            
+            # Update in Firestore
+            self.materials_collection.document(material_id).update(update_dict)
             
             return True
             
         except Exception as e:
-            logger.error(f"Error updating material status: {str(e)}")
+            logger.error(f"Error updating material status: {str(e)}", exc_info=True)
             raise
     
     async def delete_material(self, material_id: str) -> bool:
@@ -142,6 +167,8 @@ class MaterialService:
             Success status
         """
         try:
+            logger.info(f"Deleting material: {material_id}")
+            
             # Delete from Firestore
             self.materials_collection.document(material_id).delete()
             
@@ -151,7 +178,7 @@ class MaterialService:
             return True
             
         except Exception as e:
-            logger.error(f"Error deleting material: {str(e)}")
+            logger.error(f"Error deleting material: {str(e)}", exc_info=True)
             raise
     
     async def update_processing_status(self, status: MaterialProcessingStatus) -> bool:
@@ -168,13 +195,21 @@ class MaterialService:
             # Convert to dictionary
             status_dict = status.dict() if hasattr(status, 'dict') else status
             
+            # Add update timestamp if not provided
+            if 'updated_at' not in status_dict:
+                status_dict['updated_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            
+            # If completed or failed, add completed timestamp if not provided
+            if status_dict['status'] in ['completed', 'failed'] and 'completed_at' not in status_dict:
+                status_dict['completed_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            
             # Update in Firestore
             self.processing_collection.document(status.material_id).set(status_dict)
             
             return True
             
         except Exception as e:
-            logger.error(f"Error updating processing status: {str(e)}")
+            logger.error(f"Error updating processing status: {str(e)}", exc_info=True)
             raise
     
     async def get_processing_status(self, material_id: str) -> Optional[MaterialProcessingStatus]:
@@ -192,22 +227,24 @@ class MaterialService:
             doc = self.processing_collection.document(material_id).get()
             
             if not doc.exists:
+                logger.warning(f"Processing status not found for material: {material_id}")
                 return None
             
             # Convert to MaterialProcessingStatus
             return MaterialProcessingStatus(**doc.to_dict())
             
         except Exception as e:
-            logger.error(f"Error getting processing status: {str(e)}")
+            logger.error(f"Error getting processing status: {str(e)}", exc_info=True)
             raise
     
-    async def get_materials_by_course(self, course_id: str, module_id: Optional[str] = None) -> List[MaterialResponse]:
+    async def get_materials_by_course(self, course_id: str, module_id: Optional[str] = None, topic_id: Optional[str] = None) -> List[MaterialResponse]:
         """
-        Get materials by course ID and optionally module ID
+        Get materials by course ID and optionally module ID or topic ID
         
         Args:
             course_id: Course ID
             module_id: Optional module ID
+            topic_id: Optional topic ID
             
         Returns:
             List of materials
@@ -219,6 +256,9 @@ class MaterialService:
             if module_id:
                 query = query.where(filter=FieldFilter("module_id", "==", module_id))
             
+            if topic_id:
+                query = query.where(filter=FieldFilter("topic_id", "==", topic_id))
+            
             # Execute query
             docs = query.get()
             
@@ -226,16 +266,17 @@ class MaterialService:
             return [MaterialResponse(**doc.to_dict()) for doc in docs]
             
         except Exception as e:
-            logger.error(f"Error getting materials by course: {str(e)}")
+            logger.error(f"Error getting materials by course: {str(e)}", exc_info=True)
             raise
     
-    async def get_all_materials(self, limit: int = 100, offset: int = 0) -> List[MaterialResponse]:
+    async def get_all_materials(self, limit: int = 100, offset: int = 0, status: Optional[str] = None) -> List[MaterialResponse]:
         """
-        Get all materials with pagination
+        Get all materials with pagination and optional status filter
         
         Args:
             limit: Maximum number of materials to return
             offset: Offset for pagination
+            status: Optional status filter
             
         Returns:
             List of materials
@@ -243,6 +284,10 @@ class MaterialService:
         try:
             # Query Firestore
             query = self.materials_collection.order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+            
+            # Add status filter if provided
+            if status:
+                query = query.where(filter=FieldFilter("status", "==", status))
             
             # Apply pagination
             query = query.limit(limit).offset(offset)
@@ -254,9 +299,137 @@ class MaterialService:
             return [MaterialResponse(**doc.to_dict()) for doc in docs]
             
         except Exception as e:
-            logger.error(f"Error getting all materials: {str(e)}")
+            logger.error(f"Error getting all materials: {str(e)}", exc_info=True)
             raise
+    
+    async def update_material_metadata(self, material_id: str, metadata: Dict[str, Any]) -> bool:
+        """
+        Update material metadata without changing other fields
         
+        Args:
+            material_id: ID of the material
+            metadata: Metadata to update
+            
+        Returns:
+            Success status
+        """
+        try:
+            logger.info(f"Updating material metadata: {material_id}")
+            
+            # Add update timestamp
+            metadata['updated_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            
+            # Update in Firestore
+            self.materials_collection.document(material_id).update(metadata)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating material metadata: {str(e)}", exc_info=True)
+            raise
+    
+    async def count_materials_by_status(self) -> Dict[str, int]:
+        """
+        Count materials by status
+        
+        Returns:
+            Dictionary of status counts
+        """
+        try:
+            # Get all materials
+            all_docs = self.materials_collection.get()
+            
+            # Count by status
+            status_counts = {
+                "processing": 0,
+                "completed": 0,
+                "failed": 0,
+                "total": 0
+            }
+            
+            for doc in all_docs:
+                data = doc.to_dict()
+                status = data.get("status", "unknown")
+                
+                if status in status_counts:
+                    status_counts[status] += 1
+                else:
+                    status_counts[status] = 1
+                
+                status_counts["total"] += 1
+            
+            return status_counts
+            
+        except Exception as e:
+            logger.error(f"Error counting materials by status: {str(e)}", exc_info=True)
+            raise
+    
+    async def get_recent_materials(self, limit: int = 5) -> List[MaterialResponse]:
+        """
+        Get most recently uploaded materials
+        
+        Args:
+            limit: Maximum number of materials to return
+            
+        Returns:
+            List of materials
+        """
+        try:
+            # Query Firestore
+            query = (self.materials_collection
+                     .order_by("uploaded_at", direction=firestore.Query.DESCENDING)
+                     .limit(limit))
+            
+            # Execute query
+            docs = query.get()
+            
+            # Convert to MaterialResponse objects
+            return [MaterialResponse(**doc.to_dict()) for doc in docs]
+            
+        except Exception as e:
+            logger.error(f"Error getting recent materials: {str(e)}", exc_info=True)
+            raise
+
+
+    async def update_material_with_schema(self, material_id: str, update_data: MaterialUpdate) -> bool:
+        """
+        Update a material in the database using MaterialUpdate schema
+        
+        Args:
+            material_id: ID of the material
+            update_data: Updated material data
+            
+        Returns:
+            Success status
+        """
+        try:
+            logger.info(f"Updating material with schema: {material_id}")
+            
+            # Convert to dictionary, only including set fields
+            update_dict = update_data.dict(exclude_unset=True)
+            
+            # Handle type field conversion - in frontend it's just "type", in backend it's "material_type"
+            if "type" in update_dict:
+                update_dict["material_type"] = update_dict.pop("type")
+            
+            # Handle course_id field conversion
+            if "course_id" in update_dict:
+                update_dict["course_id"] = update_dict.pop("course_id")
+            
+            # Add update timestamp
+            update_dict['updated_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            
+            # Update in Firestore
+            self.materials_collection.document(material_id).update(update_dict)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating material with schema: {str(e)}", exc_info=True)
+            raise
+
+
+
 
 # import uuid
 # from typing import List, Dict, Any, Optional
