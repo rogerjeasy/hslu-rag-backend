@@ -48,3 +48,9 @@ env/
 # Logs and databases
 *.log
 *.sqlite3
+
+*/temp
+.temp
+*/temp/*
+.temp/*
+*/temp/**/*
