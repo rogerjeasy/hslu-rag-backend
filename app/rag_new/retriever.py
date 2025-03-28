@@ -2,7 +2,7 @@ import logging
 import asyncio
 from typing import List, Dict, Any, Optional, Tuple, Union
 import numpy as np
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.docstore.document import Document
 
 

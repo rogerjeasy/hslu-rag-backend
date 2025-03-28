@@ -7,7 +7,6 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.rag_new.rag_service import RAGService
-from app.rag_new.retriever import RAGRetriever
 from app.services.material_service import MaterialService
 from app.schemas.rag_query import (
     RAGQuery, RAGResponse, RAGContext, 

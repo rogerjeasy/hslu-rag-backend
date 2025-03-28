@@ -4,8 +4,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from fastapi import UploadFile
 import langchain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma, Pinecone
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.docstore.document import Document
