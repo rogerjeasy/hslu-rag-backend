@@ -103,3 +103,34 @@ class CloudinaryService:
         
         # Default to raw for all other file types
         return 'raw'
+    
+    async def download_file(self, file_url: str, destination_path: str) -> str:
+        """
+        Download a file from Cloudinary URL to a local path.
+        
+        Args:
+            file_url: Cloudinary URL of the file
+            destination_path: Local path to save the file
+            
+        Returns:
+            Path to downloaded file
+        """
+        try:
+            import requests
+            
+            # Fetch the file from Cloudinary
+            response = requests.get(file_url, stream=True)
+            response.raise_for_status()  # Raise error for bad status codes
+            
+            # Save the file to the destination path
+            with open(destination_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            
+            logger.info(f"Successfully downloaded file from {file_url} to {destination_path}")
+            return destination_path
+            
+        except Exception as e:
+            logger.error(f"Error downloading file from Cloudinary: {str(e)}")
+            raise ValidationException(f"Failed to download file from storage: {str(e)}")

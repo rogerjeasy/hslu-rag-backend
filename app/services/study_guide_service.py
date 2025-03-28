@@ -5,19 +5,18 @@ from datetime import datetime
 
 from app.core.firebase import firebase
 from app.core.exceptions import NotFoundException
-from app.rag.llm_connector import LLMConnector
-from app.rag.retriever import Retriever
+from app.rag_new.rag_service import RAGService
 
 logger = logging.getLogger(__name__)
 
 class StudyGuideService:
     """Service for generating and managing study guides"""
     
-    def __init__(self):
+    def __init__(self, firestore_service=None):
         """Initialize the study guide service"""
-        self.db = firebase.get_firestore() if firebase.app else None
-        self.llm_connector = LLMConnector()
-        self.retriever = Retriever()
+        self.db = firestore_service.db if firestore_service else firebase.get_firestore()
+        # Use RAGService instead of direct LLM and Retriever instantiation
+        self.rag_service = RAGService()
     
     async def get_study_guides(
         self,
@@ -147,15 +146,7 @@ class StudyGuideService:
                         course_title = course_doc.to_dict().get("title", "Course")
                     title = f"{guide_request.get('guide_type', 'Summary')} Guide: {course_title}"
             
-            # Retrieve relevant content for the guide
-            retrieved_chunks = await self.retriever.retrieve(
-                query=f"Generate a {guide_request.get('guide_type', 'summary')} study guide",
-                course_id=guide_request.get("course_id"),
-                topic_ids=guide_request.get("topic_ids"),
-                limit=10  # Get more chunks for a comprehensive guide
-            )
-            
-            # Generate guide content using LLM
+            # Build the prompt for study guide generation
             prompt = self._build_study_guide_prompt(
                 guide_type=guide_request.get("guide_type", "summary"),
                 focus_areas=guide_request.get("focus_areas", []),
@@ -164,21 +155,29 @@ class StudyGuideService:
                 include_diagrams=guide_request.get("include_diagrams", False)
             )
             
-            response = await self.llm_connector.generate_response(
-                query=prompt,
-                retrieved_chunks=retrieved_chunks,
-                conversation_history=[]
+            # Create a query request object for the RAG service
+            from types import SimpleNamespace
+            query_request = SimpleNamespace(
+                text=prompt,
+                course_id=guide_request.get("course_id"),
+                conversation_id=None  # No conversation needed for study guides
+            )
+            
+            # Use the RAG service to process the query
+            rag_response = await self.rag_service.process_query(
+                query_request=query_request,
+                user_id=user_id
             )
             
             # Process LLM response into sections
-            sections = self._parse_sections(response["content"])
+            sections = self._parse_sections(rag_response["response"])
             
             # Prepare guide document
             guide_id = f"guide-{uuid.uuid4().hex}"
             guide_data = {
                 "title": title,
                 "course_id": guide_request.get("course_id"),
-                "topic_ids": guide_request.get("topic_ids"),
+                "topic_ids": guide_request.get("topic_ids", []),
                 "guide_type": guide_request.get("guide_type", "summary"),
                 "sections": sections,
                 "created_at": datetime.utcnow().isoformat(),

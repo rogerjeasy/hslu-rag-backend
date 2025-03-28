@@ -1,11 +1,27 @@
+# app/api/routes/study_guides.py
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+
+from app.core.firebase import firebase
 from app.core.security import get_current_user
-from app.schemas.study_guide import StudyGuideRequest, StudyGuideResponse
+from app.services.firestore_service import FirestoreService
+from app.services.generation_service import GenerationService
+from app.services.retrieval_service import RetrievalService
 from app.services.study_guide_service import StudyGuideService
+from app.dto.study_guide_dto import (
+    FrontendStudyGuideRequestDTO,
+    BackendStudyGuideDTO
+)
+from app.schemas.study_guide import StudyGuideResponse
 
 router = APIRouter(prefix="/study-guides", tags=["study guides"])
-study_guide_service = StudyGuideService()
+retrieval_service = RetrievalService()
+generation_service = GenerationService()
+firestore_service = FirestoreService(firebase.get_firestore())
+study_guide_service = StudyGuideService(firestore_service=firestore_service)
+
+logger = logging.getLogger(__name__)
 
 @router.get("/", response_model=List[StudyGuideResponse])
 async def get_study_guides(
@@ -58,18 +74,23 @@ async def get_study_guide(
 
 @router.post("/", response_model=StudyGuideResponse, status_code=status.HTTP_201_CREATED)
 async def create_study_guide(
-    guide_request: StudyGuideRequest,
+    frontend_request: Dict[str, Any],
     current_user=Depends(get_current_user)
 ):
     """
     Create a new AI-generated study guide for a course or topic.
     """
-    print("study_guide_request", guide_request)
     try:
+        # Convert frontend request to backend format using DTO
+        logging.info(f"===================Creating study guide with request: {frontend_request}")
+        backend_request = FrontendStudyGuideRequestDTO.to_backend(frontend_request)
+        
+        # Create the study guide
         guide = await study_guide_service.create_study_guide(
             user_id=current_user.id,
-            guide_request=guide_request
+            guide_request=backend_request.dict()
         )
+        
         return guide
     except Exception as e:
         raise HTTPException(

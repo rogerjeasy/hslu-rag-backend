@@ -2,7 +2,7 @@ import os
 import json
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator, validator, root_validator
+from pydantic import Field, field_validator, validator, root_validator
 
 RENDER_SECRET_PATH = "/etc/secrets/firebase-credentials.json"
 
@@ -11,8 +11,6 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "HSLU AI Assistant RAG Application"
     API_V1_STR: str = "/api"
     
-    # API URL for documentation and external references
-    # In production, this will be set to the Render URL
     API_URL: str = "http://localhost:8000"
    
     # CORS settings
@@ -27,15 +25,9 @@ class Settings(BaseSettings):
     # Firebase settings
     FIREBASE_CREDENTIALS: Optional[str] = None
     FIREBASE_WEB_API_KEY: str = ""
-   
-    # Vector database settings
-    VECTOR_DB_TYPE: str = "chroma"  # Options: chroma, pinecone, weaviate
-    VECTOR_DB_URL: str = ""
-    VECTOR_DB_API_KEY: str = ""
-    CHROMA_PERSIST_DIR: str = "./chroma_db"
-   
+      
     # LLM settings
-    LLM_PROVIDER: str = "claude"  # Options: claude, gpt
+    LLM_PROVIDER: str = "gpt"  # Options: claude, gpt
     LLM_API_KEY: str = ""
    
     # Embedding settings
@@ -47,11 +39,6 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL_NAME: str = "text-embedding-3-small"
     EMBEDDING_DIMENSIONS: int = 1536
    
-    # Astra DB settings
-    ASTRA_DB_API_ENDPOINT: str = ""
-    ASTRA_DB_APPLICATION_TOKEN: str = ""
-    ASTRA_DB_NAMESPACE: str = "default_keyspace"
-    ASTRA_DB_COLLECTION: str = "hslu_rag_data"
 
     # Cloudinary settings
     CLOUDINARY_CLOUD_NAME: str = ""
@@ -61,10 +48,23 @@ class Settings(BaseSettings):
     # Pinecone settings
     PINECONE_API_KEY: str = ""
     PINECONE_ENVIRONMENT: str = ""
-    PINECONE_INDEX_NAME: str = "hslu-rag-index-fpqjvu0"
+    PINECONE_INDEX_NAME: str = "hslu-rag-index-test"
    
     # OpenAI settings
     OPENAI_API_KEY: str = ""
+
+    # File processing settings
+    MAX_FILE_SIZE_MB: int = Field(50, description="Maximum file size in MB")
+    ALLOWED_FILE_TYPES: List[str] = Field(
+        ["pdf", "docx", "pptx", "txt", "md", "py", "ipynb", "csv", "xlsx"],
+        description="Allowed file types for upload"
+    )
+
+    # RAG retrieval settings
+    RAG_DEFAULT_TOP_K: int = Field(5, description="Default number of chunks to retrieve")
+    RAG_MIN_RELEVANCE_SCORE: float = Field(0.2, description="Minimum relevance score for chunks")
+    RAG_ENABLE_RERANKING: bool = Field(True, description="Whether to enable semantic reranking")
+    RAG_ENABLE_QUERY_EXPANSION: bool = Field(True, description="Whether to enable query expansion")
    
     # Content processing settings
     CHUNK_SIZE: int = 500
@@ -97,13 +97,6 @@ class Settings(BaseSettings):
         # Validate that we have Firebase credentials (either from file or env var)
         if not values.get("FIREBASE_CREDENTIALS"):
             raise ValueError("FIREBASE_CREDENTIALS must be provided")
-            
-        # Validate Astra DB settings
-        if not values.get("ASTRA_DB_API_ENDPOINT"):
-            raise ValueError("ASTRA_DB_API_ENDPOINT must be provided")
-            
-        if not values.get("ASTRA_DB_APPLICATION_TOKEN"):
-            raise ValueError("ASTRA_DB_APPLICATION_TOKEN must be provided")
             
         return values
    

@@ -1,3 +1,4 @@
+# app/core/prompt_templates.py
 """
 Prompt templates for HSLU RAG application.
 

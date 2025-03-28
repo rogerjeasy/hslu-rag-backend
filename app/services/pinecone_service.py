@@ -19,9 +19,22 @@ class PineconeService:
             environment=settings.PINECONE_ENVIRONMENT
         )
         
-        # Set index name
-        self.index_name = index_name or settings.PINECONE_INDEX_NAME
+        # Set index name from settings
+        base_index_name = index_name or settings.PINECONE_INDEX_NAME
         
+        # Get actual index name (which may have the ID suffix)
+        index_names = self.pc.list_indexes().names()
+        
+        # Find the matching index (that starts with our base name)
+        matching_indices = [name for name in index_names if name.startswith(base_index_name)]
+        
+        if matching_indices:
+            # Use the first matching index
+            self.index_name = matching_indices[0]
+        else:
+            # If no matching index exists, use the base name (will be created)
+            self.index_name = base_index_name
+            
         # Get or create index
         if self.index_name not in [idx for idx in self.pc.list_indexes().names()]:
             # Create index if it doesn't exist
@@ -168,10 +181,43 @@ class PineconeService:
             if value is None:
                 continue
                 
-            # Convert lists, dicts, and other objects to strings
+            # Handle chunk_content specifically to ensure it's proper text
+            if key == "chunk_content" and value is not None:
+                try:
+                    # If it's binary or bytes, decode it
+                    if isinstance(value, bytes):
+                        value = value.decode('utf-8', errors='replace')
+                    
+                    # If it's a string, ensure it's valid UTF-8
+                    if isinstance(value, str):
+                        # Force encoding/decoding to clean the text
+                        value = value.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+                        
+                        # Remove any non-printable characters
+                        import re
+                        value = re.sub(r'[^\x20-\x7E\x0A\x0D\x09\xA0-\xFF]', '', value)
+                        
+                        # Truncate to avoid Pinecone metadata size limits
+                        value = value[:1000]
+                    else:
+                        # If it's not a string or bytes, convert to string
+                        value = str(value)
+                except Exception as e:
+                    logger.error(f"Error sanitizing chunk content: {str(e)}")
+                    value = "Error encoding content"
+                    
+            # Convert collections to strings
             if isinstance(value, (list, dict, set, tuple)):
                 clean_metadata[key] = str(value)
             else:
+                # Ensure all string values are properly encoded
+                if isinstance(value, str):
+                    try:
+                        # Clean up the string
+                        value = value.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
+                    except Exception:
+                        value = "Error encoding value"
+                
                 clean_metadata[key] = value
         
         return clean_metadata
