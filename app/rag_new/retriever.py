@@ -3,11 +3,8 @@ import asyncio
 from typing import List, Dict, Any, Optional, Tuple, Union
 import numpy as np
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Pinecone
 from langchain.docstore.document import Document
-# from langchain.chains.query_transformer.base import BaseQueryTransformer
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import LLMChainExtractor
+
 
 from app.core.config import settings
 from app.rag_new.embdeddings import EmbeddingService

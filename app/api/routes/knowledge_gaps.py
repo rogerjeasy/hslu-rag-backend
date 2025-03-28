@@ -7,7 +7,7 @@ from app.dto.knowledge_gap_dto import (
     FrontendKnowledgeGapDTO, BackendKnowledgeGapDTO
 )
 from app.services.firestore_service import FirestoreService
-from app.services.rag_service import RAGService
+from app.rag_new.rag_service import RAGService
 from app.services.retrieval_service import RetrievalService
 from app.services.generation_service import GenerationService
 from app.schemas.query import KnowledgeGapRequest, QueryType
@@ -21,11 +21,7 @@ router = APIRouter(prefix="/knowledge-gaps", tags=["knowledge-gaps"])
 retrieval_service = RetrievalService()
 generation_service = GenerationService()
 firestore_service = FirestoreService(firebase.get_firestore())
-rag_service = RAGService(
-    retrieval_service=retrieval_service,
-    generation_service=generation_service,
-    firestore_service=firestore_service
-)
+rag_service = RAGService()
 
 @router.post("/", response_model=Dict[str, Any])
 async def analyze_knowledge_gap(

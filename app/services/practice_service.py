@@ -6,7 +6,8 @@ from datetime import datetime
 from app.core.firebase import firebase
 from app.core.exceptions import NotFoundException
 from app.rag.llm_connector import LLMConnector
-from app.rag.retriever import Retriever
+from app.rag_new.retriever import RAGRetriever
+from app.rag_new.embdeddings import EmbeddingService
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class PracticeService:
         """Initialize the practice service"""
         self.db = firebase.get_firestore() if firebase.app else None
         self.llm_connector = LLMConnector()
-        self.retriever = Retriever()
+        self.retriever = RAGRetriever(embedding_service=EmbeddingService())
     
     async def get_practice_sets(
         self,
@@ -37,36 +38,6 @@ class PracticeService:
             List of practice set objects
         """
         try:
-            # For mock mode, return sample data
-            if self.db is None:
-                return [
-                    {
-                        "id": "practice-1",
-                        "title": "Machine Learning Quiz",
-                        "course_id": "machine-learning",
-                        "topic_ids": ["neural-networks", "deep-learning"],
-                        "question_count": 5,
-                        "difficulty": "medium",
-                        "questions": [
-                            {
-                                "id": "q1",
-                                "question": "What is the primary goal of supervised learning?",
-                                "type": "multiple_choice",
-                                "options": [
-                                    "Finding hidden patterns in unlabeled data",
-                                    "Predicting outputs based on labeled training data",
-                                    "Reinforcing actions based on rewards",
-                                    "Clustering similar data points"
-                                ],
-                                "correct_answer": "Predicting outputs based on labeled training data",
-                                "explanation": "Supervised learning uses labeled training data to learn a function that maps inputs to outputs."
-                            }
-                        ],
-                        "created_at": datetime.utcnow().isoformat(),
-                        "created_by": user_id
-                    }
-                ]
-            
             # Build query
             query = self.db.collection("practice_sets").where("created_by", "==", user_id)
             
@@ -102,33 +73,6 @@ class PracticeService:
             Practice set object
         """
         try:
-            # For mock mode, return sample data
-            if self.db is None:
-                return {
-                    "id": practice_id,
-                    "title": "Machine Learning Quiz",
-                    "course_id": "machine-learning",
-                    "topic_ids": ["neural-networks", "deep-learning"],
-                    "question_count": 5,
-                    "difficulty": "medium",
-                    "questions": [
-                        {
-                            "id": "q1",
-                            "question": "What is the primary goal of supervised learning?",
-                            "type": "multiple_choice",
-                            "options": [
-                                "Finding hidden patterns in unlabeled data",
-                                "Predicting outputs based on labeled training data",
-                                "Reinforcing actions based on rewards",
-                                "Clustering similar data points"
-                            ],
-                            "correct_answer": "Predicting outputs based on labeled training data",
-                            "explanation": "Supervised learning uses labeled training data to learn a function that maps inputs to outputs."
-                        }
-                    ],
-                    "created_at": datetime.utcnow().isoformat(),
-                    "created_by": user_id
-                }
             
             # Get practice document
             practice_doc = self.db.collection("practice_sets").document(practice_id).get()
@@ -167,47 +111,6 @@ class PracticeService:
             Generated practice set
         """
         try:
-            # For mock mode, return sample data
-            if self.db is None:
-                practice_id = f"practice-{uuid.uuid4().hex[:8]}"
-                return {
-                    "id": practice_id,
-                    "title": practice_request.get("title", "Practice Questions"),
-                    "course_id": practice_request.get("course_id"),
-                    "topic_ids": practice_request.get("topic_ids"),
-                    "question_count": practice_request.get("question_count", 5),
-                    "difficulty": practice_request.get("difficulty", "medium"),
-                    "questions": [
-                        {
-                            "id": "q1",
-                            "question": "What is the primary goal of supervised learning?",
-                            "type": "multiple_choice",
-                            "options": [
-                                "Finding hidden patterns in unlabeled data",
-                                "Predicting outputs based on labeled training data",
-                                "Reinforcing actions based on rewards",
-                                "Clustering similar data points"
-                            ],
-                            "correct_answer": "Predicting outputs based on labeled training data",
-                            "explanation": "Supervised learning uses labeled training data to learn a function that maps inputs to outputs."
-                        },
-                        {
-                            "id": "q2",
-                            "question": "Which of the following is NOT a common activation function in neural networks?",
-                            "type": "multiple_choice",
-                            "options": [
-                                "ReLU",
-                                "Sigmoid",
-                                "Tanh",
-                                "Logarithmic Mean Square"
-                            ],
-                            "correct_answer": "Logarithmic Mean Square",
-                            "explanation": "ReLU, Sigmoid, and Tanh are common activation functions. Logarithmic Mean Square is not a standard activation function."
-                        }
-                    ],
-                    "created_at": datetime.utcnow().isoformat(),
-                    "created_by": user_id
-                }
             
             # Generate title if not provided
             title = practice_request.get("title")

@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
 
 # Import application modules
-from app.api.routes import auth, courses, materials, queries, study_guides, practice, conversations, statistics, maintenance, rag
+from app.api.routes import auth, courses, materials, queries, study_guides, practice, conversations, statistics, rag
 from app.core.config import settings
 from app.core.exceptions import BaseAPIException, AuthenticationException, PermissionDeniedException, NotFoundException, ValidationException, RateLimitException
 
@@ -274,7 +274,6 @@ app.include_router(study_guides, prefix=f"{API_PREFIX}/v1", tags=["Study Guides"
 app.include_router(practice, prefix=f"{API_PREFIX}/v1", tags=["Practice Questions"])
 app.include_router(conversations, prefix=f"{API_PREFIX}/v1", tags=["Conversations"]) 
 app.include_router(statistics, prefix=f"{API_PREFIX}/v1", tags=["Statistics"])
-app.include_router(maintenance, prefix=f"{API_PREFIX}/v1", tags=["Maintenance"])
 app.include_router(rag, prefix=f"{API_PREFIX}/v1", tags=["RAG System"])
 
 # Serve static files (for API documentation, etc.)

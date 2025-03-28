@@ -8,7 +8,6 @@ from langchain.vectorstores import Chroma, Pinecone
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-from langchain.memory import ConversationBufferMemory
 from langchain.docstore.document import Document
 
 from app.core.config import settings
