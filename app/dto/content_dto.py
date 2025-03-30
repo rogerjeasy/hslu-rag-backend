@@ -45,6 +45,44 @@ class FrontendRAGResponseDTO(BaseModel):
     @classmethod
     def from_backend(cls, response: RAGResponse) -> 'FrontendRAGResponseDTO':
         """Convert backend RAGResponse to frontend format"""
+        # Create a transformed meta dictionary with camelCase keys
+        transformed_meta = None
+        if response.meta:
+            transformed_meta = {}
+            for key, value in response.meta.items():
+                # Convert snake_case to camelCase for all keys
+                camel_key = ''.join(word.capitalize() if i > 0 else word 
+                                  for i, word in enumerate(key.split('_')))
+                
+                # Handle nested dictionaries inside 'questions'
+                if key == 'questions' and isinstance(value, list):
+                    transformed_questions = []
+                    for question in value:
+                        transformed_question = {}
+                        for q_key, q_value in question.items():
+                            # Convert snake_case to camelCase for question keys
+                            q_camel_key = ''.join(word.capitalize() if i > 0 else word 
+                                              for i, word in enumerate(q_key.split('_')))
+                            
+                            # Handle options list with nested dictionaries
+                            if q_key == 'options' and isinstance(q_value, list):
+                                transformed_options = []
+                                for option in q_value:
+                                    transformed_option = {}
+                                    for o_key, o_value in option.items():
+                                        # Convert snake_case to camelCase for option keys
+                                        o_camel_key = ''.join(word.capitalize() if i > 0 else word 
+                                                          for i, word in enumerate(o_key.split('_')))
+                                        transformed_option[o_camel_key] = o_value
+                                    transformed_options.append(transformed_option)
+                                transformed_question[q_camel_key] = transformed_options
+                            else:
+                                transformed_question[q_camel_key] = q_value
+                        transformed_questions.append(transformed_question)
+                    transformed_meta[camel_key] = transformed_questions
+                else:
+                    transformed_meta[camel_key] = value
+        
         return cls(
             queryId=response.query_id,
             query=response.query,
@@ -53,9 +91,8 @@ class FrontendRAGResponseDTO(BaseModel):
             citations=response.citations,
             promptType=response.prompt_type,
             timestamp=response.timestamp,
-            meta=response.meta
+            meta=transformed_meta
         )
-
 
 class FrontendContentSummaryDTO(BaseModel):
     """DTO for mapping backend ContentSummary to frontend format"""
@@ -106,7 +143,8 @@ class FrontendPracticeQuestionsSummaryDTO(FrontendContentSummaryDTO):
         """Convert backend PracticeQuestionsSummary dict to frontend format"""
         return cls(
             id=summary["id"],
-            topic=summary["topic"],
+            # Provide a default value for topic if it's None
+            topic=summary.get("topic") or summary.get("query", "Practice Questions"),
             courseId=summary.get("course_id"),
             moduleId=summary.get("module_id"),
             createdAt=summary["created_at"],
