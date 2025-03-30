@@ -66,7 +66,7 @@ class PracticeQuestionsRequest(BaseModel):
     topic: str = Field(..., description="Topic for practice questions")
     course_id: Optional[str] = Field(None, description="Course ID filter")
     module_id: Optional[str] = Field(None, description="Module ID filter")
-    question_count: int = Field(5, ge=1, le=10, description="Number of questions to generate")
+    question_count: int = Field(5, ge=1, le=20, description="Number of questions to generate")
     difficulty: str = Field("medium", description="Difficulty level (basic, medium, advanced)")
     question_types: List[str] = Field(
         ["multiple_choice", "short_answer"],

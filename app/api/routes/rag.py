@@ -243,20 +243,31 @@ async def generate_practice_questions(
     """
     try:
         logger.info(f"Practice questions request received for topic: {request.topic}")
+
+        logger.info(f"Question count: {request.question_count}")
+
+        logger.info(f"------------------full request: {request}")
         
         # Validate inputs
-        if request.question_count < 1 or request.question_count > 10:
+        if request.question_count < 1 or request.question_count > 20:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Question count must be between 1 and 10"
+                detail="Question count must be between 1 and 20"
             )
-        
+
         # Add user_id to the request
         request.user_id = user_id
-        
+
+        # Temporarily store and remove course_id from request
+        course_id = request.course_id
+        request.course_id = None
+
         # Use RAGManager to generate practice questions
         response = await rag_manager.generate_practice_questions(request)
-        
+
+        # Restore course_id to request
+        request.course_id = course_id
+
         # Convert to API response format
         return QueryResponse(
             answer=response.answer,

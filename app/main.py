@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from typing import Dict, List, Union
 
 from fastapi import FastAPI, Request, status, Depends
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -264,6 +265,14 @@ app.add_middleware(
     expose_headers=["X-Request-ID", "X-Process-Time"],
     max_age=600,  # Cache preflight requests for 10 minutes
 )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    logger.error(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
 
 # Include API routes with versioned prefix
 app.include_router(auth, prefix=f"{API_PREFIX}/v1", tags=["Authentication"])
