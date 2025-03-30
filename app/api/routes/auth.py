@@ -20,7 +20,7 @@ from app.core.security import (
     check_admin_or_instructor_role
 )
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(prefix="/auth")
 auth_service = AuthService()
 
 # Add OPTIONS handlers for CORS preflight requests

@@ -21,7 +21,7 @@ from app.services.rag_manager import RAGManager
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/materials", tags=["materials"])
+router = APIRouter(prefix="/materials")
 
 # Initialize services
 cloudinary_service = CloudinaryService()
@@ -504,7 +504,7 @@ async def get_materials(
             detail=f"Error getting materials: {str(e)}"
         )
     
-    
+
 # from datetime import datetime
 # import json
 # from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, logger, status, File, UploadFile

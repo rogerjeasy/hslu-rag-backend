@@ -15,7 +15,7 @@ from app.core.security import get_current_user
 from app.schemas.auth import UserResponse
 from app.core.firebase import firebase
 
-router = APIRouter(prefix="/knowledge-gaps", tags=["knowledge-gaps"])
+router = APIRouter(prefix="/knowledge-gaps")
 
 # Initialize services
 retrieval_service = RetrievalService()

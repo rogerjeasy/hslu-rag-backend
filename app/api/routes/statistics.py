@@ -26,7 +26,7 @@ from app.core.security import (
 from app.core.firebase import firebase
 from app.core.exceptions import BaseAPIException
 
-router = APIRouter(prefix="/statistics", tags=["statistics"])
+router = APIRouter(prefix="/statistics")
 
 # Initialize service
 statistics_service = StatisticsService(firebase.get_firestore())
