@@ -4,7 +4,7 @@ from app.core.security import get_current_user
 from app.schemas.practice import PracticeRequest, PracticeResponse, PracticeAnswer, PracticeResult
 from app.services.practice_service import PracticeService
 
-router = APIRouter(prefix="/practice", tags=["practice"])
+router = APIRouter(prefix="/practice")
 practice_service = PracticeService()
 
 @router.get("/", response_model=List[PracticeResponse])

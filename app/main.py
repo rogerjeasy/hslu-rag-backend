@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
 
 # Import application modules
-from app.api.routes import auth, courses, materials, study_guides, practice, conversations, statistics, rag
+from app.api.routes import auth, courses, materials, study_guides, practice, conversations, statistics, rag, content
 from app.core.config import settings
 from app.core.exceptions import BaseAPIException, AuthenticationException, PermissionDeniedException, NotFoundException, ValidationException, RateLimitException
 
@@ -267,13 +267,15 @@ app.add_middleware(
 
 # Include API routes with versioned prefix
 app.include_router(auth, prefix=f"{API_PREFIX}/v1", tags=["Authentication"])
+app.include_router(rag, prefix=f"{API_PREFIX}/v1", tags=["RAG System"])
+app.include_router(content, prefix=f"{API_PREFIX}/v1", tags=["Content Management"])
+app.include_router(statistics, prefix=f"{API_PREFIX}/v1", tags=["Statistics"])
 app.include_router(courses, prefix=f"{API_PREFIX}/v1", tags=["Courses"])
 app.include_router(materials, prefix=f"{API_PREFIX}/v1", tags=["Course Materials"])
 app.include_router(study_guides, prefix=f"{API_PREFIX}/v1", tags=["Study Guides"])
 app.include_router(practice, prefix=f"{API_PREFIX}/v1", tags=["Practice Questions"])
 app.include_router(conversations, prefix=f"{API_PREFIX}/v1", tags=["Conversations"]) 
-app.include_router(statistics, prefix=f"{API_PREFIX}/v1", tags=["Statistics"])
-app.include_router(rag, prefix=f"{API_PREFIX}/v1", tags=["RAG System"])
+
 
 # Serve static files (for API documentation, etc.)
 try:

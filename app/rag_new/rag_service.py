@@ -223,7 +223,7 @@ class RAGService:
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 temperature=0.7 if prompt_type == "question_answering" else 0.8,
-                max_tokens=2000
+                max_tokens=4000
             )
             
             return response

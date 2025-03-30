@@ -13,7 +13,7 @@ from app.core.exceptions import (
     BaseAPIException
 )
 
-router = APIRouter(prefix="/courses", tags=["courses"])
+router = APIRouter(prefix="/courses")
 course_service = CourseService()
 
 @router.get("/", response_model=List[FrontendCourseResponseDTO])

@@ -15,7 +15,7 @@ from app.dto.study_guide_dto import (
 )
 from app.schemas.study_guide import StudyGuideResponse
 
-router = APIRouter(prefix="/study-guides", tags=["study guides"])
+router = APIRouter(prefix="/study-guides")
 retrieval_service = RetrievalService()
 generation_service = GenerationService()
 firestore_service = FirestoreService(firebase.get_firestore())
