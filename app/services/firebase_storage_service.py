@@ -83,8 +83,11 @@ class FirebaseStorageService:
             
             # Get questions from meta if available
             questions = []
-            if response.meta and "questions" in response.meta:
-                questions = response.meta["questions"]
+            if response.meta:
+                if "questions" in response.meta:
+                    questions = response.meta["questions"]
+                elif "response" in response.meta and "questions" in response.meta["response"]:
+                    questions = response.meta["response"]["questions"]
             
             # Create document data
             doc_data = {

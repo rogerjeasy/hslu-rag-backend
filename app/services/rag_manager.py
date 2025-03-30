@@ -79,8 +79,13 @@ class RAGManager:
             rag_response = response.get("response", {})
             answer = rag_response.get("answer", "")
             citations = rag_response.get("citations", [])
-            meta = rag_response.get("meta", None)
-            
+            meta = rag_response.get("meta", {}) or {}
+
+            # If this is a practice questions request, extract the questions
+            if query.prompt_type == "practice_questions" and "questions" in rag_response:
+                meta["questions"] = rag_response["questions"]
+                logger.info(f"Extracted {len(meta['questions'])} questions from response")
+                
             # Format context for the response
             formatted_context = []
             for i, chunk in enumerate(context_chunks):
@@ -364,22 +369,23 @@ class RAGManager:
             # Process through regular query processing
             response = await self.process_query(query)
             
-            # Ensure questions are included in meta
             if response.meta is None:
                 response.meta = {}
+
+            response.meta["topic"] = request.topic
             
-            # Extract questions from raw response if not already in meta
-            if "questions" not in response.meta and "response" in response.meta:
+            # Extract questions from the response
+            if "questions" not in response.meta and response.meta.get("response", {}):
                 raw_response = response.meta.get("response", {})
-                if "questions" in raw_response:
+                if isinstance(raw_response, dict) and "questions" in raw_response:
                     response.meta["questions"] = raw_response["questions"]
+                    logger.info(f"Extracted questions from response: {len(response.meta['questions'])}")
             
             # Save to Firebase
             if request.user_id and response:
                 try:
                     doc_id = await self.firebase_storage.save_practice_questions(response, request.user_id)
                     
-                    # Add the document ID to the response metadata
                     response.meta["document_id"] = doc_id
                     
                     logger.info(f"Practice questions saved to Firebase with ID: {doc_id}")
