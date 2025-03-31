@@ -4,28 +4,28 @@ A Retrieval-Augmented Generation (RAG) application for HSLU MSc Students in Appl
 
 ## System Architecture
 
-This backend implements a RAG system using FastAPI, Firebase (Authentication and Firestore), and ChromaDB for vector storage. The architecture follows a layered approach:
+This backend implements a RAG system using **FastAPI**, **Firebase** (Authentication and Firestore), **Cloudinary** and **Pinecone** for vector storage. The architecture follows a layered approach:
 
 1. **API Layer**: FastAPI endpoints for authentication, content management, and query processing
-2. **Services Layer**: Business logic, Firebase integration, and RAG pipeline implementation
+2. **Services Layer**: Application logic, Firebase integration, and RAG pipeline implementation
 3. **RAG Components**: Document processing, text chunking, embedding generation, retrieval, and response generation
-4. **Data Storage**: Firebase Firestore for user data and ChromaDB for vector embeddings
+4. **Data Storage**: Firebase Firestore for user data, Cloudinary for course materials storage and Pinecone for vector embeddings
 
 ## Key Features
+- **AI Study Assistant**: Get instant, accurate answers to your questions based on your specific HSLU course materials and textbooks.
+- **Study Guide Generator**: Generate comprehensive study guides and concise summaries organized by importance and relevance to exams.
+- **Practice Questions**: Test your knowledge with course-specific practice questions that reference specific lectures and concepts.
+- **Authentication with Firebase** for secure user management and data storage.
 
-- Authentication with Firebase
-- Course-specific question answering
-- Exam preparation summaries
-- Practice question generation
-- Concept clarification with examples
-- Knowledge gap identification
+<!-- - Concept clarification with examples
+- Knowledge gap identification -->
 
 ## Prerequisites
 
 - Python 3.10+
 - Docker and Docker Compose
-- Firebase project with Authentication and Firestore enabled
-- API keys for Claude or OpenAI
+- Firebase project with Authentication and Firestore enabled (secret service account key)
+- API keys for OpenAI
 
 ## Setup
 
@@ -36,23 +36,52 @@ git clone https://github.com/rogerjeasy/hslu-rag-backend.git
 cd hslu-rag-backend
 ```
 
-### 2. Create environment file
+### 2. Create a `.env` File
 
-Copy the example environment file and update with your credentials:
+Create a `.env` file in the root directory and add the following environment variables:
 
-```bash
-cp .env.example .env
+```env
+FIREBASE_CREDENTIALS="your-path/your-secret-service-name.json"
+
+
+# OpenAI settings
+OPENAI_API_KEY="your-openai-api-key"
+
+CLOUDINARY_CLOUD_NAME="your-cloudinary-cloud-name"
+CLOUDINARY_API_KEY="your-cloudinary-api-key"
+CLOUDINARY_API_SECRET="your-cloudinary-api-secret"
+CLOUDINARY_URL="your-cloudinary-url"
+
+PINECONE_AI_AGENT_API_KEY=your-pinecone-api-key
+PINECONE_ENVIRONMENT=your-pinecone-environment
+PINECONE_INDEX_NAME=your-pinecone-index-name
+PINECONE_API_KEY=your-pinecone-api-key
+CHUNK_SIZE=500
+CHUNK_OVERLAP=100
 ```
 
-Edit `.env` to add your Firebase and LLM credentials.
+### 3. Start The FastAPI Application
 
-### 3. Start with Docker Compose
+#### Using Docker Compose
 
 ```bash
 docker-compose up -d
 ```
 
-This will start the FastAPI application on port 8000 and Redis on port 6379.
+#### Using Uvicorn
+
+```bash
+uvicorn app.main:app --reload
+```
+
+#### Using Python
+
+```bash
+pip install -r requirements.txt
+python -m app.main
+```
+
+This will start the FastAPI application on port 8000.
 
 ### 4. Access the API documentation
 
@@ -69,77 +98,73 @@ Open your browser and navigate to:
    - Go to Project Settings > Service Accounts
    - Click "Generate new private key"
    - Save the JSON file securely
-5. Add the JSON content to your `.env` file (inside the FIREBASE_CREDENTIALS value)
-
-## Development
-
-### Run tests
-
-```bash
-docker-compose exec api pytest
-```
-
-### Format code
-
-```bash
-docker-compose exec api black .
-docker-compose exec api isort .
-```
-
-### Lint code
-
-```bash
-docker-compose exec api flake8
-```
+5. Add the JSON filename to your `.env` file (inside the FIREBASE_CREDENTIALS value)
 
 ## API Endpoints
 
 ### Authentication
 
-- `POST /api/auth/register`: Register a new user
-- `GET /api/auth/me`: Get current user profile
-- `PUT /api/auth/me`: Update user profile
-- `POST /api/auth/token/verify`: Verify authentication token
+- `POST /api/v1/auth/register`: Register a new user
+- `GET /api/v1/auth/me`: Get current user profile
+- `PUT /api/v1/auth/me`: Update user profile
+- `POST /api/v1/auth/token/verify`: Verify authentication token
 
-### Queries
 
-- `POST /api/queries/`: Submit a new query
-- `GET /api/queries/history`: Get query history
-- `GET /api/queries/conversations`: Get all conversation IDs
-- `DELETE /api/queries/history/{query_id}`: Delete a specific query
+### Query RAG API Endpoints
 
-### Courses
+Below are the available endpoints for the query RAG API:
 
-- `GET /api/courses/`: Get all courses
-- `GET /api/courses/{course_id}`: Get specific course details
-- `POST /api/courses/{course_id}/enroll`: Enroll in a course
+BASE_URL: `/api/rag/v1`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/query` | Process a RAG query and return a contextualized response. |
+| POST | `/query/conversation` | Process a RAG query, save it in a conversation, and return both the response and conversation. Creates a new conversation if conversation_id is not provided. |
+| POST | `/study-guide` | Generate a study guide for a specific topic and save it to Firebase. |
+| POST | `/study-guide/conversation` | Generate a study guide and save it in a conversation. Creates a new conversation if conversation_id is not provided. |
+| POST | `/practice-questions` | Generate practice questions for a specific topic and save them to Firebase. |
+| POST | `/practice-questions/conversation` | Generate practice questions and save them in a conversation. Creates a new conversation if conversation_id is not provided. |
+| POST | `/knowledge-gap` | Analyze knowledge gaps based on a student query and save to Firebase. |
+| POST | `/knowledge-gap/conversation` | Analyze knowledge gaps and save the analysis in a conversation. Creates a new conversation if conversation_id is not provided. |
+
+### Course API Endpoints
+
+Below are the available endpoints for the course API:
+BASE_URL: `/api/v1`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/courses/` | Get a list of all courses available to the user. Requires authentication. |
+| GET | `/courses/{course_id}` | Get details for a specific course. Requires authentication and course access. |
+| POST | `/courses/` | Create a new course. Requires authentication. Only admins and instructors can create courses. |
+| PUT | `/courses/{course_id}` | Update a course. Requires authentication. Only admins and the instructor who created the course can update it. |
+| DELETE | `/courses/{course_id}` | Delete a course. Requires authentication. Only admins can delete courses. |
+| POST | `/courses/{course_id}/enroll` | Enroll the current user in a course. Requires authentication. |
+| POST | `/courses/{course_id}/unenroll` | Unenroll the current user from a course. Requires authentication. |
+
+### Content API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/content/study-guides` | List study guides created by the current user. |
+| GET | `/content/study-guides/{guide_id}` | Retrieve a specific study guide by ID. |
+| DELETE | `/content/study-guides/{guide_id}` | Delete a specific study guide by ID. |
+| GET | `/content/practice-questions` | List practice question sets created by the current user. |
+| GET | `/content/practice-questions/{questions_id}` | Retrieve a specific practice question set by ID. |
+| DELETE | `/content/practice-questions/{questions_id}` | Delete a specific practice question set by ID. |
+| GET | `/content/knowledge-gaps` | List knowledge gap analyses created by the current user. |
+| GET | `/content/knowledge-gaps/{gap_id}` | Retrieve a specific knowledge gap analysis by ID. |
+| DELETE | `/content/knowledge-gaps/{gap_id}` | Delete a specific knowledge gap analysis by ID. |
+| DELETE | `/content/user-content` | Delete all content created by the current user. |
 
 ### Materials
 
-- `POST /api/materials/`: Upload course material
-- `GET /api/materials/{course_id}`: Get materials for a course
-
-### Study Guides
-
-- `POST /api/study-guides/`: Generate a study guide
-- `GET /api/study-guides/`: Get all study guides
-
-### Practice Questions
-
-- `POST /api/practice/`: Generate practice questions
-- `GET /api/practice/`: Get practice question sets
-
-## Production Deployment
-
-For production deployment:
-
-1. Update CORS settings in `.env`
-2. Set `ENV=production` in `.env`
-3. Build the production Docker image:
-
-```bash
-docker build --target production -t hslu-rag-backend:production .
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/materials/upload` | Upload course materials to Cloudinary. |
+| GET | `/materials/{material_id}` | Get course materials by ID. |
+| DELETE | `/materials/{material_id}` | Delete course materials by ID. |
+| GET | `/materials` | List all course materials. |
 
 4. Deploy to your preferred container orchestration platform (Kubernetes, AWS ECS, etc.)
 
@@ -154,3 +179,8 @@ docker build --target production -t hslu-rag-backend:production .
 3. Commit your changes
 4. Push to the branch
 5. Create a new Pull Request
+
+## Contributors
+
+- Roger ([@rogerjeasy](https://github.com/rogerjeasy))
+- Chichko ([@sahrabaettig](https://github.com/Riko20))
