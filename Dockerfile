@@ -65,6 +65,8 @@ RUN echo "Contents of /app:" && ls -la /app
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD curl -f http://localhost:${PORT:-8000}/api/health || exit 1
 
+EXPOSE ${PORT:-8000}
+
 # Add debugging info
 RUN echo "Production image ready"
 

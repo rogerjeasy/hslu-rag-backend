@@ -243,10 +243,6 @@ async def generate_practice_questions(
     """
     try:
         logger.info(f"Practice questions request received for topic: {request.topic}")
-
-        logger.info(f"Question count: {request.question_count}")
-
-        logger.info(f"------------------full request: {request}")
         
         # Validate inputs
         if request.question_count < 1 or request.question_count > 20:
