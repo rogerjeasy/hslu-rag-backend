@@ -19,7 +19,17 @@ class EmbeddingService:
     def __init__(self):
         """Initialize the embedding service with configured providers"""
         # Setup OpenAI for embeddings
-        openai.api_key = settings.OPENAI_API_KEY
+        api_key = settings.OPENAI_API_KEY
+        if not api_key or api_key.strip() == "":
+            error_msg = "OPENAI_API_KEY is empty or not set in environment"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        # Log key presence (not the actual key) for debugging
+        logger.info(f"OPENAI_API_KEY is present and has length: {len(api_key)}")
+    
+        # Setup OpenAI with explicit strip to remove any whitespace
+        openai.api_key = api_key.strip()
         
         # Setup Pinecone for vector storage
         self._init_pinecone()
@@ -170,15 +180,13 @@ class EmbeddingService:
         text = text[:8000]  # Approximate limit
         
         try:
-            # Use asyncio.to_thread to run the synchronous OpenAI call in a thread pool
-            # to avoid blocking the event loop
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None, 
-                lambda: openai.embeddings.create(
-                    model=self.embedding_model,
-                    input=text
-                )
+            # Create a client with explicitly stripped key
+            client = openai.AsyncClient(api_key=settings.OPENAI_API_KEY.strip())
+            
+            # Use async client directly
+            response = await client.embeddings.create(
+                model=self.embedding_model,
+                input=text
             )
             
             # Return the embedding

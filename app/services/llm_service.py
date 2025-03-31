@@ -22,9 +22,9 @@ class LLMService:
         self.provider = settings.LLM_PROVIDER.lower()
         
         if self.provider == "claude":
-            self.client = AsyncAnthropic(api_key=settings.LLM_API_KEY)
+            self.client = AsyncAnthropic(api_key=settings.LLM_API_KEY.strip())
         elif self.provider == "gpt":
-            openai.api_key = settings.LLM_API_KEY
+            openai.api_key = settings.OPENAI_API_KEY.strip()
         else:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
     
@@ -140,7 +140,7 @@ class LLMService:
         """Generate response using OpenAI GPT API"""
         try:
             # Use the async client
-            async_client = openai.AsyncClient(api_key=settings.OPENAI_API_KEY)
+            async_client = openai.AsyncClient(api_key=settings.OPENAI_API_KEY.strip())
             
             # Call OpenAI API using async method
             response = await async_client.chat.completions.create(
