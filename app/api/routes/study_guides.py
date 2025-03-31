@@ -7,7 +7,6 @@ from app.core.firebase import firebase
 from app.core.security import get_current_user
 from app.services.firestore_service import FirestoreService
 from app.services.generation_service import GenerationService
-from app.services.retrieval_service import RetrievalService
 from app.services.study_guide_service import StudyGuideService
 from app.dto.study_guide_dto import (
     FrontendStudyGuideRequestDTO,
@@ -16,7 +15,6 @@ from app.dto.study_guide_dto import (
 from app.schemas.study_guide import StudyGuideResponse
 
 router = APIRouter(prefix="/study-guides")
-retrieval_service = RetrievalService()
 generation_service = GenerationService()
 firestore_service = FirestoreService(firebase.get_firestore())
 study_guide_service = StudyGuideService(firestore_service=firestore_service)
