@@ -100,6 +100,32 @@ Open your browser and navigate to:
    - Save the JSON file securely
 5. Add the JSON filename to your `.env` file (inside the FIREBASE_CREDENTIALS value)
 
+## Key Components
+
+The HSLU RAG Application architecture follows a layered approach with these key components:
+
+### Document Processing Pipeline
+
+- **DocumentProcessor**: Handles extraction of text from various file formats (PDF, PowerPoint, Jupyter notebooks, Word documents, code files). Key methods: `process_file()`, `_extract_text_from_pdf()`, `_extract_text_from_presentation()`.
+
+- **EnhancedTextChunker**: Implements intelligent segmentation of course materials into semantic chunks with appropriate overlap for better context retrieval.
+
+### Embedding and Retrieval System
+
+- **EmbeddingService**: Manages vector embeddings creation and storage using OpenAI and Pinecone. Key methods: `create_embedding()`, `search_similar()`, `delete_by_metadata()`.
+
+- **RAGRetriever**: Advanced document retriever with query enhancement and reranking capabilities. Methods include: `retrieve()`, `_semantic_reranking()`, `_expand_query()`.
+
+### RAG Core Services
+
+- **RAGService**: Orchestrates the RAG operations including context retrieval and response generation. Key methods: `retrieve_relevant_context()`, `generate_rag_response()`, `process_material()`.
+
+- **RAGManager**: High-level service for managing user interactions with the RAG system. Key methods: `process_query()`, `generate_study_guide()`, `generate_practice_questions()`, `analyze_knowledge_gaps()`.
+
+### LLM Integration
+
+- **LLMService**: Handles integration with language models (OpenAI GPT, Claude) for response generation. Methods: `generate_response()`, `_generate_claude_response()`, `_generate_gpt_response()`.
+
 ## API Endpoints
 
 ### Authentication
