@@ -8,7 +8,6 @@ from app.dto.knowledge_gap_dto import (
 )
 from app.services.firestore_service import FirestoreService
 from app.rag_new.rag_service import RAGService
-from app.services.retrieval_service import RetrievalService
 from app.services.generation_service import GenerationService
 from app.schemas.query import KnowledgeGapRequest, QueryType
 from app.core.security import get_current_user
@@ -18,7 +17,6 @@ from app.core.firebase import firebase
 router = APIRouter(prefix="/knowledge-gaps")
 
 # Initialize services
-retrieval_service = RetrievalService()
 generation_service = GenerationService()
 firestore_service = FirestoreService(firebase.get_firestore())
 rag_service = RAGService()

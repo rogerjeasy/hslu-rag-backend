@@ -50,7 +50,7 @@ class RAGManager:
             # Retrieve relevant context
             context_chunks = await self.rag_service.retrieve_relevant_context(
                 query=query.query,
-                course_id=query.course_id,
+                # course_id=query.course_id,
                 module_id=query.module_id,
                 topic_id=query.topic_id,
                 max_chunks=settings.RAG_DEFAULT_TOP_K,

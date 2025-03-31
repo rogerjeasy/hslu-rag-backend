@@ -9,7 +9,6 @@ from app.dto.practice_questions_dto import (
 )
 from app.services.firestore_service import FirestoreService
 from app.rag_new.rag_service import RAGService
-from app.services.retrieval_service import RetrievalService
 from app.services.generation_service import GenerationService
 from app.schemas.query import PracticeQuestionsRequest, QueryType
 from app.core.security import get_current_user
@@ -19,14 +18,9 @@ from app.core.firebase import firebase
 router = APIRouter(prefix="/practice-questions")
 
 # Initialize services
-retrieval_service = RetrievalService()
 generation_service = GenerationService()
 firestore_service = FirestoreService(firebase.get_firestore())
-rag_service = RAGService(
-    retrieval_service=retrieval_service,
-    generation_service=generation_service,
-    firestore_service=firestore_service
-)
+rag_service = RAGService()
 
 @router.post("/", response_model=Dict[str, Any])
 async def create_practice_questions(

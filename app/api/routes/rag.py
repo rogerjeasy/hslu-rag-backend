@@ -53,7 +53,7 @@ async def rag_query(
     Process a RAG query and return a contextualized response.
     """
     try:
-        logger.info(f"RAG query received: {request.query[:100]}...")
+        logger.info(f"RAG query received: {request.query[:100]}... and converstation id: {request.conversation_id}")
         
         # Create RAGQuery object
         query = RAGQuery(
